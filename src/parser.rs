@@ -21,7 +21,7 @@ impl TerminalParsingExpression {
 }
 
 impl ParsingExpression for TerminalParsingExpression {
-    fn matches(&self, tokenizer: &mut Tokenizer) -> ParsingResult {
+    fn matches(&self, _tokenizer: &mut Tokenizer) -> ParsingResult {
         ParsingResult {}
     }
     fn dump(&self) -> String {
@@ -40,7 +40,7 @@ impl NonTerminalParsingExpression {
 }
 
 impl ParsingExpression for NonTerminalParsingExpression {
-    fn matches(&self, tokenizer: &mut Tokenizer) -> ParsingResult {
+    fn matches(&self, _tokenizer: &mut Tokenizer) -> ParsingResult {
         ParsingResult {}
     }
     fn dump(&self) -> String {
@@ -61,7 +61,7 @@ impl SequenceParsingExpression {
 }
 
 impl ParsingExpression for SequenceParsingExpression {
-    fn matches(&self, tokenizer: &mut Tokenizer) -> ParsingResult {
+    fn matches(&self, _tokenizer: &mut Tokenizer) -> ParsingResult {
         ParsingResult {}
     }
     fn dump(&self) -> String {
@@ -91,7 +91,7 @@ impl ChoiceParsingExpresion {
 }
 
 impl ParsingExpression for ChoiceParsingExpresion {
-    fn matches(&self, tokenizer: &mut Tokenizer) -> ParsingResult {
+    fn matches(&self, _tokenizer: &mut Tokenizer) -> ParsingResult {
         ParsingResult {}
     }
     fn dump(&self) -> String {

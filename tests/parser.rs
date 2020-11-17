@@ -33,6 +33,7 @@ mod stringify {
         }
     }
 
+    #[test]
     fn stringify_non_terminal() {
         let rule = ParseRule {
             left_side: String::from("XYZ"),
