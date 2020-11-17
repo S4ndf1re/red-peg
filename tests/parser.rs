@@ -2,7 +2,7 @@
 mod stringify {
     use red_peg::parser::*;
     #[test]
-    fn stringify() {
+    fn stringify_choice_sequence_terminal() {
         {
             let rule = ParseRule {
                 left_side: String::from("Start"),
@@ -31,5 +31,20 @@ mod stringify {
             };
             assert_eq!(format!("{}", rule), "XYZ -> ('A' | 'B' | 'C') 'D'");
         }
+    }
+
+    fn stringify_non_terminal() {
+        let rule = ParseRule {
+            left_side: String::from("XYZ"),
+            right_side: SequenceParsingExpression::new(vec![
+                ChoiceParsingExpresion::new(vec![
+                    NonTerminalParsingExpression::new("A"),
+                    TerminalParsingExpression::new("B"),
+                    NonTerminalParsingExpression::new("C"),
+                ]),
+                TerminalParsingExpression::new("D"),
+            ]),
+        };
+        assert_eq!(format!("{}", rule), "XYZ -> (A | 'B' | C) 'D'");
     }
 }

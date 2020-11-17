@@ -29,6 +29,25 @@ impl ParsingExpression for TerminalParsingExpression {
     }
 }
 
+pub struct NonTerminalParsingExpression {
+    name: String,
+}
+
+impl NonTerminalParsingExpression {
+    pub fn new(p_name: &str) -> Box<dyn ParsingExpression> {
+        Box::new(NonTerminalParsingExpression { name: String::from(p_name) })
+    }
+}
+
+impl ParsingExpression for NonTerminalParsingExpression {
+    fn matches(&self, tokenizer: &mut Tokenizer) -> ParsingResult {
+        ParsingResult {}
+    }
+    fn dump(&self) -> String {
+        return String::from(format!("{}", self.name));
+    }
+}
+
 pub struct SequenceParsingExpression {
     children: Vec<Box<dyn ParsingExpression>>,
 }
