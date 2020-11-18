@@ -10,8 +10,8 @@ pub enum TokenType {
 
 #[derive(Clone, fmt::Debug)]
 pub struct Token {
-    pub line : u32,
-    pub column : u32,
+    pub line : usize,
+    pub column : usize,
     pub content: String,
     pub t_type : TokenType
 }
@@ -32,19 +32,21 @@ impl Tokenizer {
                 tokens: Vec::new(),
                 states: vec![0usize],
                 eof_token: Token{line: 0, column: 0, content: String::new(), t_type: TokenType::EOF}};
-        let mut line = 1u32;
-        let mut column = 1u32;
+        let mut line = 1usize;
+        let mut column = 1usize;
         let mut token_start = 0usize;
         let mut just_added_token = false;
         for (i, c) in tokenizer.code.chars().enumerate() {
             if c.is_whitespace() {
-                tokenizer.tokens.push(Token{
-                    line,
-                    column,
-                    content: String::from(&tokenizer.code[token_start..i]),
-                    t_type : TokenType::NONTERMINAL
-                });
-                just_added_token = true;
+                if !just_added_token {
+                    tokenizer.tokens.push(Token{
+                        line,
+                        column: column - (i - token_start),
+                        content: String::from(&tokenizer.code[token_start..i]),
+                        t_type : TokenType::NONTERMINAL
+                    });
+                    just_added_token = true;
+                }
                 if c == '\n' {
                     column = 1;
                     line += 1;
@@ -56,7 +58,7 @@ impl Tokenizer {
             }
             column += 1;
         }
-        if !just_added_token && !code.is_empty() {
+        if !just_added_token && !tokenizer.code[token_start..tokenizer.code.len()].trim().is_empty() {
             tokenizer.tokens.push(Token{
                 line,
                 column,
