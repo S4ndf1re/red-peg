@@ -4,7 +4,7 @@ mod stringify {
     #[test]
     #[should_panic]
     fn state_system_panic() {
-        let mut t = Tokenizer::new("Hallo Welt!");
+        let mut t = CodeTokenizer::new("Hallo Welt!");
         t.push_state();
         t.pop_state();
         t.pop_state();
@@ -12,7 +12,7 @@ mod stringify {
 
     #[test]
     fn state_system() {
-        let mut t = Tokenizer::new("Hallo Welt");
+        let mut t = CodeTokenizer::new("Hallo Welt");
         assert_eq!(t.tokens_len(), 2);
         t.push_state();
         t.push_state();
@@ -20,25 +20,25 @@ mod stringify {
         t.pop_state();
         assert_eq!(t.next_token().content, "Hallo");
         assert_eq!(t.next_token().content, "Welt");
-        assert_eq!(t.next_token().t_type, TokenType::EOF);
+        assert!(t.next_token().eof);
         t.pop_state();
         assert_eq!(t.next_token().content, "Hallo");
         assert_eq!(t.next_token().content, "Welt");
-        assert_eq!(t.next_token().t_type, TokenType::EOF);
+        assert!(t.next_token().eof);
     }
 
     #[test]
     fn eof_token() {
-        let mut t = Tokenizer::new("");
+        let mut t = CodeTokenizer::new("");
         assert_eq!(t.tokens_len(), 0);
-        assert_eq!(t.next_token().t_type, TokenType::EOF);
-        assert_eq!(t.next_token().t_type, TokenType::EOF);
-        assert_eq!(t.next_token().t_type, TokenType::EOF);
-        assert_eq!(t.next_token().t_type, TokenType::EOF);
+        assert!(t.next_token().eof);
+        assert!(t.next_token().eof);
+        assert!(t.next_token().eof);
+        assert!(t.next_token().eof);
     }
     #[test]
     fn tokenize() {
-        let mut t = Tokenizer::new("Hallo\n Welt ");
+        let mut t = CodeTokenizer::new("Hallo\n Welt ");
         assert_eq!(t.tokens_len(), 2);
         let token = t.next_token();
         assert_eq!(token.content, "Hallo");

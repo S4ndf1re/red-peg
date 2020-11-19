@@ -1,10 +1,11 @@
+use crate::tokenizer::CodeTokenizer;
 use std::fmt;
-use crate::tokenizer::Tokenizer;
+use std::collections::HashMap;
 
 pub struct ParsingResult {}
 
 pub trait ParsingExpression {
-    fn matches(&self, tokenizer: &mut Tokenizer) -> ParsingResult;
+    fn matches(&self, tokenizer: &mut CodeTokenizer) -> ParsingResult;
     fn dump(&self) -> String {
         return String::from("ParsingExpression");
     }
@@ -16,12 +17,14 @@ pub struct TerminalParsingExpression {
 
 impl TerminalParsingExpression {
     pub fn new(p_name: &str) -> Box<dyn ParsingExpression> {
-        Box::new(TerminalParsingExpression { name: String::from(p_name) })
+        Box::new(TerminalParsingExpression {
+            name: String::from(p_name),
+        })
     }
 }
 
 impl ParsingExpression for TerminalParsingExpression {
-    fn matches(&self, _tokenizer: &mut Tokenizer) -> ParsingResult {
+    fn matches(&self, _tokenizer: &mut CodeTokenizer) -> ParsingResult {
         ParsingResult {}
     }
     fn dump(&self) -> String {
@@ -35,12 +38,14 @@ pub struct NonTerminalParsingExpression {
 
 impl NonTerminalParsingExpression {
     pub fn new(p_name: &str) -> Box<dyn ParsingExpression> {
-        Box::new(NonTerminalParsingExpression { name: String::from(p_name) })
+        Box::new(NonTerminalParsingExpression {
+            name: String::from(p_name),
+        })
     }
 }
 
 impl ParsingExpression for NonTerminalParsingExpression {
-    fn matches(&self, _tokenizer: &mut Tokenizer) -> ParsingResult {
+    fn matches(&self, _tokenizer: &mut CodeTokenizer) -> ParsingResult {
         ParsingResult {}
     }
     fn dump(&self) -> String {
@@ -61,7 +66,7 @@ impl SequenceParsingExpression {
 }
 
 impl ParsingExpression for SequenceParsingExpression {
-    fn matches(&self, _tokenizer: &mut Tokenizer) -> ParsingResult {
+    fn matches(&self, _tokenizer: &mut CodeTokenizer) -> ParsingResult {
         ParsingResult {}
     }
     fn dump(&self) -> String {
@@ -91,7 +96,7 @@ impl ChoiceParsingExpresion {
 }
 
 impl ParsingExpression for ChoiceParsingExpresion {
-    fn matches(&self, _tokenizer: &mut Tokenizer) -> ParsingResult {
+    fn matches(&self, _tokenizer: &mut CodeTokenizer) -> ParsingResult {
         ParsingResult {}
     }
     fn dump(&self) -> String {
@@ -108,27 +113,32 @@ impl ParsingExpression for ChoiceParsingExpresion {
         return ret;
     }
 }
-
-pub struct ParseRule {
-    pub left_side: String,
-    pub right_side: Box<dyn ParsingExpression>,
-}
-
-impl fmt::Display for ParseRule {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} -> {}", self.left_side, self.right_side.dump())
-    }
-}
-
 pub struct Parser {
-    rules: Vec<ParseRule>,
+    rules: HashMap<String, Box<dyn ParsingExpression>>,
 }
 
 impl Parser {
     pub fn new() -> Parser {
-        Parser { rules: Vec::new() }
+        Parser { rules: HashMap::new() }
     }
-    pub fn add_rule(&mut self, rule: ParseRule) {
-        self.rules.push(rule);
+    pub fn add_rule(&mut self, left_side : &str, right_side : Box<dyn ParsingExpression>) {
+        self.rules.insert(String::from(left_side), right_side);
+    }
+    pub fn validate(&self, start_non_terminal: &str, code: &str) -> bool {
+        let mut tokenizer = CodeTokenizer::new(code);
+        let rule = self.rules.get(non_terminal).expect("No matching rule for non-terminal!");
+        rule.validate(tokenizer, &self.rules);
+        true
+    }
+}
+
+
+impl fmt::Display for Parser {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut res : fmt::Result = fmt::Result::Ok(());
+        for (left_side, right_side) in &self.rules {
+            res = res.and(write!(f, "{} -> {}", left_side, right_side.dump()));
+        }
+        res
     }
 }

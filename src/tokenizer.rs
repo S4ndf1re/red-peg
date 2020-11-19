@@ -1,37 +1,34 @@
 use std::fmt;
 
-#[derive(Copy, Clone, fmt::Debug, PartialEq)]
-pub enum TokenType {
-    TERMINAL,
-    NONTERMINAL,
-    OR,
-    EOF
-}
-
 #[derive(Clone, fmt::Debug)]
 pub struct Token {
-    pub line : usize,
-    pub column : usize,
+    pub line: usize,
+    pub column: usize,
     pub content: String,
-    pub t_type : TokenType
+    pub eof: bool,
 }
 
 #[derive(fmt::Debug)]
-pub struct Tokenizer {
-    code : String,
-    tokens : Vec<Token>,
-    states : Vec<usize>,
-    eof_token : Token
+pub struct CodeTokenizer {
+    code: String,
+    tokens: Vec<Token>,
+    states: Vec<usize>,
+    eof_token: Token,
 }
 
-impl Tokenizer {
-    pub fn new(code : &str) -> Tokenizer {
-        let mut tokenizer =
-            Tokenizer{
-                code : String::from(code),
-                tokens: Vec::new(),
-                states: vec![0usize],
-                eof_token: Token{line: 0, column: 0, content: String::new(), t_type: TokenType::EOF}};
+impl CodeTokenizer {
+    pub fn new(code: &str) -> CodeTokenizer {
+        let mut tokenizer = CodeTokenizer {
+            code: String::from(code),
+            tokens: Vec::new(),
+            states: vec![0usize],
+            eof_token: Token {
+                line: 0,
+                column: 0,
+                content: String::new(),
+                eof: true,
+            },
+        };
         let mut line = 1usize;
         let mut column = 1usize;
         let mut token_start = 0usize;
@@ -39,11 +36,11 @@ impl Tokenizer {
         for (i, c) in tokenizer.code.chars().enumerate() {
             if c.is_whitespace() {
                 if !just_added_token {
-                    tokenizer.tokens.push(Token{
+                    tokenizer.tokens.push(Token {
                         line,
                         column: column - (i - token_start),
                         content: String::from(&tokenizer.code[token_start..i]),
-                        t_type : TokenType::NONTERMINAL
+                        eof: false,
                     });
                     just_added_token = true;
                 }
@@ -58,12 +55,16 @@ impl Tokenizer {
             }
             column += 1;
         }
-        if !just_added_token && !tokenizer.code[token_start..tokenizer.code.len()].trim().is_empty() {
-            tokenizer.tokens.push(Token{
+        if !just_added_token
+            && !tokenizer.code[token_start..tokenizer.code.len()]
+                .trim()
+                .is_empty()
+        {
+            tokenizer.tokens.push(Token {
                 line,
                 column,
                 content: String::from(&tokenizer.code[token_start..tokenizer.code.len()]),
-                t_type : TokenType::NONTERMINAL
+                eof: false,
             });
         }
         return tokenizer;
@@ -79,7 +80,8 @@ impl Tokenizer {
     }
 
     pub fn push_state(&mut self) {
-        self.states.push(self.states.first().expect("No current state!").clone())
+        self.states
+            .push(self.states.first().expect("No current state!").clone())
     }
 
     pub fn pop_state(&mut self) {
