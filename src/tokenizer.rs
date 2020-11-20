@@ -95,3 +95,92 @@ impl CodeTokenizer {
         self.tokens.len()
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ExpressionToken {
+    Expression(String),
+    GroupBegin,
+    GroupEnd,
+    ZeroOrMore,
+    OneOrMore,
+    Ordering,
+    None, // For ignoring the token
+}
+
+#[derive(Debug)]
+pub struct ExpressionTokenizer {
+    tokens: Vec<ExpressionToken>,
+    current: usize,
+}
+
+impl ExpressionTokenizer {
+    pub fn new(tokenstring: &str) -> Self {
+        let mut tokenizer = Self {
+            tokens: Vec::new(),
+            current: 0,
+        };
+        let mut last_string = String::new();
+        let iter = tokenstring.chars().into_iter();
+        let mut last = '\0';
+        let mut in_regex = false;
+        for c in iter {
+            // in_regex and c.is_whitespace must be separate, because they
+            // need a tokenizer.append_last() call, while not appending any token to the
+            // tokenizer other than an expression
+            if in_regex {
+                last_string.push(c);
+                if c == ']' && last != '\\' {
+                    in_regex = false;
+                    tokenizer.append_last(last_string);
+                    last_string = String::new();
+                }
+            } else {
+                let expr = match c {
+                    '(' => Some(ExpressionToken::GroupBegin),
+                    ')' => Some(ExpressionToken::GroupEnd),
+                    '[' => {
+                        in_regex = true;
+                        None
+                    }
+                    '+' => Some(ExpressionToken::OneOrMore),
+                    '*' => Some(ExpressionToken::ZeroOrMore),
+                    '/' => Some(ExpressionToken::Ordering),
+                    _ if c.is_whitespace() => Some(ExpressionToken::None),
+                    _ => None,
+                };
+                if let Some(ex) = expr {
+                    tokenizer.append_last(last_string);
+                    last_string = String::new();
+                    if ex != ExpressionToken::None {
+                        tokenizer.tokens.push(ex);
+                    }
+                } else {
+                    last_string.push(c);
+                    last = c;
+                }
+            }
+        }
+
+        tokenizer.append_last(last_string);
+        return tokenizer;
+    }
+
+    fn append_last(&mut self, last_string: String) {
+        if last_string.len() > 0 {
+            self.tokens
+                .push(ExpressionToken::Expression(last_string.trim().to_string()));
+        }
+    }
+
+    pub fn tokens_len(&self) -> usize {
+        return self.tokens.len();
+    }
+
+    pub fn next(&mut self) -> Option<ExpressionToken> {
+        if self.current < self.tokens_len() {
+            self.current += 1;
+            return Some(self.tokens[self.current - 1].clone());
+        }
+        return None;
+    }
+}
