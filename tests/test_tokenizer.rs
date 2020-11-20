@@ -31,6 +31,7 @@ mod stringify {
     fn eof_token() {
         let mut t = CodeTokenizer::new("");
         assert_eq!(t.tokens_len(), 0);
+        assert!(t.is_empty());
         assert!(t.next_token().eof);
         assert!(t.next_token().eof);
         assert!(t.next_token().eof);
@@ -48,5 +49,6 @@ mod stringify {
         assert_eq!(token.content, "Welt");
         assert_eq!(token.line, 2);
         assert_eq!(token.column, 2);
+        assert!(t.is_empty());
     }
 }

@@ -78,6 +78,10 @@ impl CodeTokenizer {
             &self.eof_token
         }
     }
+    pub fn is_empty(&self) -> bool {
+        let index = self.states.last().expect("No state left!");
+        self.tokens.len() <= *index
+    }
 
     pub fn push_state(&mut self) {
         self.states
