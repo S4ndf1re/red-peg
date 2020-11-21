@@ -298,35 +298,48 @@ impl Parser {
         let mut sequence = Vec::new();
         let mut ordering = Vec::new();
         loop {
-            let mut expr = None;
             if let Some(token) = tokenizer.next() {
-                if token == ExpressionToken::GroupBegin {
-                    expr = Some(Self::parse_rule(tokenizer));
-                } else if token == ExpressionToken::GroupEnd {
-                    if ordering.len() > 0 {
+                let expr = match token {
+                    ExpressionToken::GroupBegin => Some(Self::parse_rule(tokenizer)),
+                    ExpressionToken::GroupEnd => {
+                        if ordering.len() > 0 {
+                            ordering.push(
+                                Self::vec_to_expression(sequence).expect("Invalid PEG grammar"),
+                            );
+                            return ChoiceParsingExpresion::new(ordering);
+                        } else {
+                            return Self::vec_to_expression(sequence).expect("Invalid PEG grammar");
+                        }
+                    }
+                    ExpressionToken::Expression(val) => {
+                        Some(NonTerminalParsingExpression::new(val.as_str()))
+                    }
+                    ExpressionToken::TerminalExpression(val) => {
+                        Some(TerminalParsingExpression::new(val.as_str()))
+                    }
+                    ExpressionToken::Ordering => {
                         ordering
                             .push(Self::vec_to_expression(sequence).expect("Invalid PEG grammar"));
-                        return ChoiceParsingExpresion::new(ordering);
-                    } else {
-                        return Self::vec_to_expression(sequence).expect("Invalid PEG grammar");
+                        sequence = Vec::new();
+                        None
                     }
-                } else if let ExpressionToken::Expression(val) = token {
-                    expr = Some(NonTerminalParsingExpression::new(val.as_str()));
-                } else if let ExpressionToken::TerminalExpression(val) = token {
-                    expr = Some(TerminalParsingExpression::new(val.as_str()));
-                } else if token == ExpressionToken::Ordering {
-                    ordering.push(Self::vec_to_expression(sequence).expect("Invalid PEG grammar"));
-                    sequence = Vec::new();
-                } else if token == ExpressionToken::ZeroOrMore {
-                    let child = sequence.remove(sequence.len() - 1); // Panics if invalid grammar
-                    sequence.push(ZeroOrMoreParsingExpression::new(child));
-                } else if token == ExpressionToken::OneOrMore {
-                    let child = sequence.remove(sequence.len() - 1); // Panics if invalid grammar
-                    sequence.push(OneOrMoreParsingExpression::new(child));
-                } else if token == ExpressionToken::Optional {
-                    let child = sequence.remove(sequence.len() - 1); // Panics if invalid grammar
-                    sequence.push(OptionalParsingExpression::new(child));
-                }
+                    ExpressionToken::ZeroOrMore => {
+                        let child = sequence.remove(sequence.len() - 1); // Panics if invalid grammar
+                        sequence.push(ZeroOrMoreParsingExpression::new(child));
+                        None
+                    }
+                    ExpressionToken::OneOrMore => {
+                        let child = sequence.remove(sequence.len() - 1); // Panics if invalid grammar
+                        sequence.push(OneOrMoreParsingExpression::new(child));
+                        None
+                    }
+                    ExpressionToken::Optional => {
+                        let child = sequence.remove(sequence.len() - 1); // Panics if invalid grammar
+                        sequence.push(OptionalParsingExpression::new(child));
+                        None
+                    }
+                    _ => None,
+                };
 
                 if let Some(val) = expr {
                     sequence.push(val);
