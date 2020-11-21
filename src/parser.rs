@@ -1,6 +1,6 @@
 use crate::tokenizer::CodeTokenizer;
-use std::fmt;
 use std::collections::HashMap;
+use std::fmt;
 
 pub struct ParsingResult {}
 
@@ -119,23 +119,27 @@ pub struct Parser {
 
 impl Parser {
     pub fn new() -> Parser {
-        Parser { rules: HashMap::new() }
+        Parser {
+            rules: HashMap::new(),
+        }
     }
-    pub fn add_rule(&mut self, left_side : &str, right_side : Box<dyn ParsingExpression>) {
+    pub fn add_rule(&mut self, left_side: &str, right_side: Box<dyn ParsingExpression>) {
         self.rules.insert(String::from(left_side), right_side);
     }
     pub fn validate(&self, start_non_terminal: &str, code: &str) -> bool {
         let mut tokenizer = CodeTokenizer::new(code);
-        let rule = self.rules.get(non_terminal).expect("No matching rule for non-terminal!");
+        let rule = self
+            .rules
+            .get(start_non_terminal)
+            .expect("No matching rule for non-terminal!");
         rule.validate(tokenizer, &self.rules);
         true
     }
 }
 
-
 impl fmt::Display for Parser {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut res : fmt::Result = fmt::Result::Ok(());
+        let mut res: fmt::Result = fmt::Result::Ok(());
         for (left_side, right_side) in &self.rules {
             res = res.and(write!(f, "{} -> {}", left_side, right_side.dump()));
         }
