@@ -78,10 +78,30 @@ impl CodeTokenizer {
             &self.eof_token
         }
     }
+    pub fn is_empty(&self) -> bool {
+        let index = self.states.last().expect("No state left!");
+        self.tokens.len() <= *index
+    }
 
     pub fn push_state(&mut self) {
         self.states
-            .push(self.states.first().expect("No current state!").clone())
+            .push(self.states.last().expect("No current state!").clone())
+    }
+    /* Takes the topmost value in the stack, saves it, pops it off the stack
+     * and writes it to the new top-entry.
+     */
+    pub fn update_state(&mut self) {
+        let current_state = *self.states.last().expect("Nu current state!");
+        self.states.pop();
+        let state_below = self
+            .states
+            .last_mut()
+            .expect("No state below the current one!");
+        *state_below = current_state;
+    }
+
+    pub fn only_one_state_left(&self) -> bool {
+        self.states.len() == 1
     }
 
     pub fn pop_state(&mut self) {
