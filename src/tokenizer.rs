@@ -85,7 +85,8 @@ impl CodeTokenizer {
 
     pub fn push_state(&mut self) {
         self.states
-            .push(self.states.first().expect("No current state!").clone())
+            .push(self.states.last().expect("No current state!").clone())
+    }
     }
 
     pub fn pop_state(&mut self) {
