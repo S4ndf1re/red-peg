@@ -3,7 +3,7 @@ mod parser {
     use red_peg::parser::*;
     #[test]
     fn stringify_choice_sequence_terminal() {
-        let mut p = Parser::new();
+        let mut p : Parser<()> = Parser::new();
         p.add_rule(
             "Start",
             ChoiceParsingExpresion::new(vec![
@@ -17,7 +17,7 @@ mod parser {
             None,
         );
         assert_eq!(format!("{}", p), "Start -> ('A' 'B' 'C' | 'D')");
-        let mut p = Parser::new();
+        let mut p : Parser<()> = Parser::new();
         p.add_rule(
             "XYZ",
             SequenceParsingExpression::new(vec![
@@ -35,7 +35,7 @@ mod parser {
 
     #[test]
     fn stringify_non_terminal() {
-        let mut p = Parser::new();
+        let mut p : Parser<()> = Parser::new();
         p.add_rule(
             "XYZ",
             SequenceParsingExpression::new(vec![
@@ -52,7 +52,7 @@ mod parser {
     }
     #[test]
     fn stringify_quantifiers() {
-        let mut p = Parser::new();
+        let mut p : Parser<()> = Parser::new();
         p.add_rule(
             "Start",
             SequenceParsingExpression::new(vec![
@@ -69,12 +69,12 @@ mod parser {
     }
     #[test]
     fn validate() {
-        let mut parser = Parser::new();
+        let mut parser : Parser<()> = Parser::new();
         parser.add_rule("Start", TerminalParsingExpression::new("a"), None);
         assert!(parser.validate("Start", "a"));
         assert!(!parser.validate("Start", "b"));
 
-        let mut parser = Parser::new();
+        let mut parser : Parser<()> = Parser::new();
         parser.add_rule(
             "Start",
             SequenceParsingExpression::new(vec![
@@ -87,7 +87,7 @@ mod parser {
         assert!(!parser.validate("Start", "a a"));
         assert!(!parser.validate("Start", "b a a"));
 
-        let mut parser = Parser::new();
+        let mut parser : Parser<()> = Parser::new();
         parser.add_rule(
             "Start",
             SequenceParsingExpression::new(vec![
@@ -103,7 +103,7 @@ mod parser {
         assert!(parser.validate("Start", "b c"));
         assert!(!parser.validate("Start", "a b"));
 
-        let mut parser = Parser::new();
+        let mut parser : Parser<()> = Parser::new();
         parser.add_rule(
             "Start",
             SequenceParsingExpression::new(vec![
@@ -133,7 +133,7 @@ mod parser {
     }
     #[test]
     fn validate_quantifiers() {
-        let mut parser = Parser::new();
+        let mut parser : Parser<()> = Parser::new();
         parser.add_rule(
             "Start",
             OptionalParsingExpression::new(TerminalParsingExpression::new("a")),
@@ -143,7 +143,7 @@ mod parser {
         assert!(parser.validate("Start", "a"));
         assert!(!parser.validate("Start", "b"));
 
-        let mut parser = Parser::new();
+        let mut parser : Parser<()> = Parser::new();
         parser.add_rule(
             "Start",
             SequenceParsingExpression::new(vec![
@@ -160,7 +160,7 @@ mod parser {
 
         // Start -> (a b)* | Second
         // Second -> c | d
-        let mut parser = Parser::new();
+        let mut parser : Parser<()> = Parser::new();
         parser.add_rule(
             "Start",
             ChoiceParsingExpresion::new(vec![
@@ -189,5 +189,20 @@ mod parser {
         assert!(!parser.validate("Start", "a a b a a a b b b a a a"));
         assert!(parser.validate("Start", "c d c d"));
         assert!(!parser.validate("Start", "c d c"));
+    }
+
+    #[test]
+    fn simple_parsing() {
+        let mut parser : Parser<i32> = Parser::new();
+        parser.add_rule(
+            "Start",
+            OptionalParsingExpression::new(TerminalParsingExpression::new("a")),
+            Some(Box::new(|r: ParsingResult| {
+                5i32
+            })),
+        );
+        assert!(parser.validate("Start", ""));
+        assert!(parser.validate("Start", "a"));
+        assert!(!parser.validate("Start", "b"));
     }
 }

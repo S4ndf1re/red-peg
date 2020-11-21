@@ -2,25 +2,26 @@ use crate::tokenizer::CodeTokenizer;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
+use std::marker::PhantomData;
 
 pub struct ASTNode {}
 pub struct ParsingResult {}
 
-pub struct Rule {
-    expression: Box<dyn ParsingExpression>,
-    callback: Option<Box<dyn FnMut(ParsingResult) -> ASTNode>>,
+pub struct Rule<T> {
+    expression: Box<dyn ParsingExpression<T>>,
+    callback: Option<Box<dyn Fn(ParsingResult) -> T>>,
 }
 
-pub struct ParsingInformation<'a> {
-    rules: &'a HashMap<String, Rule>,
+pub struct ParsingInformation<'a, T> {
+    rules: &'a HashMap<String, Rule<T>>,
     tokenizer: &'a mut CodeTokenizer,
 }
 
-pub trait ParsingExpression {
+pub trait ParsingExpression<T> {
     fn dump(&self) -> String {
         return String::from("ParsingExpression");
     }
-    fn matches(&self, tokenizer: &mut ParsingInformation) -> bool;
+    fn matches(&self, tokenizer: &mut ParsingInformation<T>) -> bool;
 }
 
 pub enum TerminalType {
@@ -28,19 +29,21 @@ pub enum TerminalType {
     REGEX(Regex),
 }
 
-pub struct TerminalParsingExpression {
+pub struct TerminalParsingExpression<T> {
     content: TerminalType,
+    _marker: PhantomData<T>
 }
 
-impl TerminalParsingExpression {
-    pub fn new(p_name: &str) -> Box<dyn ParsingExpression> {
+impl<T : 'static> TerminalParsingExpression<T> {
+    pub fn new(p_name: &str) -> Box<dyn ParsingExpression<T>> {
         Box::new(TerminalParsingExpression {
             content: TerminalType::SIMPLE(String::from(p_name)),
+            _marker: Default::default()
         })
     }
 }
 
-impl ParsingExpression for TerminalParsingExpression {
+impl<T> ParsingExpression<T> for TerminalParsingExpression<T> {
     fn dump(&self) -> String {
         match &self.content {
             TerminalType::SIMPLE(str) => {
@@ -53,7 +56,7 @@ impl ParsingExpression for TerminalParsingExpression {
         }
     }
 
-    fn matches(&self, info: &mut ParsingInformation) -> bool {
+    fn matches(&self, info: &mut ParsingInformation<T>) -> bool {
         match &self.content {
             TerminalType::SIMPLE(str) => {
                 info.tokenizer.push_state();
@@ -75,23 +78,25 @@ impl ParsingExpression for TerminalParsingExpression {
     }
 }
 
-pub struct NonTerminalParsingExpression {
+pub struct NonTerminalParsingExpression<T> {
     name: String,
+    _marker: PhantomData<T>
 }
 
-impl NonTerminalParsingExpression {
-    pub fn new(p_name: &str) -> Box<dyn ParsingExpression> {
+impl<T : 'static> NonTerminalParsingExpression<T> {
+    pub fn new(p_name: &str) -> Box<dyn ParsingExpression<T>> {
         Box::new(NonTerminalParsingExpression {
             name: String::from(p_name),
+            _marker: Default::default()
         })
     }
 }
 
-impl ParsingExpression for NonTerminalParsingExpression {
+impl<T> ParsingExpression<T> for NonTerminalParsingExpression<T> {
     fn dump(&self) -> String {
         return String::from(format!("{}", self.name));
     }
-    fn matches(&self, mut info: &mut ParsingInformation) -> bool {
+    fn matches(&self, mut info: &mut ParsingInformation<T>) -> bool {
         return info
             .rules
             .get(&self.name)
@@ -101,19 +106,21 @@ impl ParsingExpression for NonTerminalParsingExpression {
     }
 }
 
-pub struct SequenceParsingExpression {
-    children: Vec<Box<dyn ParsingExpression>>,
+pub struct SequenceParsingExpression<T : 'static> {
+    children: Vec<Box<dyn ParsingExpression<T>>>,
+    _marker: PhantomData<T>
 }
 
-impl SequenceParsingExpression {
-    pub fn new(p_children: Vec<Box<dyn ParsingExpression>>) -> Box<dyn ParsingExpression> {
+impl<T : 'static> SequenceParsingExpression<T> {
+    pub fn new(p_children: Vec<Box<dyn ParsingExpression<T>>>) -> Box<dyn ParsingExpression<T>> {
         Box::new(SequenceParsingExpression {
             children: p_children,
+            _marker: Default::default()
         })
     }
 }
 
-impl ParsingExpression for SequenceParsingExpression {
+impl<T> ParsingExpression<T> for SequenceParsingExpression<T> {
     fn dump(&self) -> String {
         let mut ret = String::new();
         let mut i = 0;
@@ -126,7 +133,7 @@ impl ParsingExpression for SequenceParsingExpression {
         }
         return ret;
     }
-    fn matches(&self, info: &mut ParsingInformation) -> bool {
+    fn matches(&self, info: &mut ParsingInformation<T>) -> bool {
         info.tokenizer.push_state();
         for child in &self.children {
             if !child.matches(info) {
@@ -139,19 +146,21 @@ impl ParsingExpression for SequenceParsingExpression {
     }
 }
 
-pub struct ChoiceParsingExpresion {
-    children: Vec<Box<dyn ParsingExpression>>,
+pub struct ChoiceParsingExpresion<T : 'static> {
+    children: Vec<Box<dyn ParsingExpression<T>>>,
+    _marker: PhantomData<T>
 }
 
-impl ChoiceParsingExpresion {
-    pub fn new(p_children: Vec<Box<dyn ParsingExpression>>) -> Box<dyn ParsingExpression> {
+impl<T : 'static> ChoiceParsingExpresion<T> {
+    pub fn new(p_children: Vec<Box<dyn ParsingExpression<T>>>) -> Box<dyn ParsingExpression<T>> {
         Box::new(ChoiceParsingExpresion {
             children: p_children,
+            _marker: Default::default()
         })
     }
 }
 
-impl ParsingExpression for ChoiceParsingExpresion {
+impl<T> ParsingExpression<T> for ChoiceParsingExpresion<T> {
     fn dump(&self) -> String {
         let mut ret = String::from("(");
         let mut i = 0;
@@ -165,7 +174,7 @@ impl ParsingExpression for ChoiceParsingExpresion {
         ret.push_str(")");
         return ret;
     }
-    fn matches(&self, info: &mut ParsingInformation) -> bool {
+    fn matches(&self, info: &mut ParsingInformation<T>) -> bool {
         for child in &self.children {
             info.tokenizer.push_state();
             if child.matches(info) {
@@ -179,22 +188,22 @@ impl ParsingExpression for ChoiceParsingExpresion {
     }
 }
 
-pub struct OneOrMoreParsingExpression {
-    child: Box<dyn ParsingExpression>,
+pub struct OneOrMoreParsingExpression<T : 'static> {
+    child: Box<dyn ParsingExpression<T>>,
 }
 
-impl OneOrMoreParsingExpression {
-    pub fn new(child: Box<dyn ParsingExpression>) -> Box<dyn ParsingExpression> {
+impl<T : 'static> OneOrMoreParsingExpression<T> {
+    pub fn new(child: Box<dyn ParsingExpression<T>>) -> Box<dyn ParsingExpression<T>> {
         Box::new(OneOrMoreParsingExpression { child })
     }
 }
-impl ParsingExpression for OneOrMoreParsingExpression {
+impl<T> ParsingExpression<T> for OneOrMoreParsingExpression<T> {
     fn dump(&self) -> String {
         let mut ret = self.child.dump();
         ret.push('+');
         return ret;
     }
-    fn matches(&self, mut info: &mut ParsingInformation) -> bool {
+    fn matches(&self, mut info: &mut ParsingInformation<T>) -> bool {
         if !self.child.matches(&mut info) {
             return false;
         }
@@ -203,54 +212,54 @@ impl ParsingExpression for OneOrMoreParsingExpression {
     }
 }
 
-pub struct ZeroOrMoreParsingExpression {
-    child: Box<dyn ParsingExpression>,
+pub struct ZeroOrMoreParsingExpression<T : 'static> {
+    child: Box<dyn ParsingExpression<T>>,
 }
 
-impl ZeroOrMoreParsingExpression {
-    pub fn new(child: Box<dyn ParsingExpression>) -> Box<dyn ParsingExpression> {
+impl<T : 'static> ZeroOrMoreParsingExpression<T> {
+    pub fn new(child: Box<dyn ParsingExpression<T>>) -> Box<dyn ParsingExpression<T>> {
         Box::new(ZeroOrMoreParsingExpression { child })
     }
 }
-impl ParsingExpression for ZeroOrMoreParsingExpression {
+impl<T> ParsingExpression<T> for ZeroOrMoreParsingExpression<T> {
     fn dump(&self) -> String {
         let mut ret = self.child.dump();
         ret.push('*');
         return ret;
     }
-    fn matches(&self, mut info: &mut ParsingInformation) -> bool {
+    fn matches(&self, mut info: &mut ParsingInformation<T>) -> bool {
         while self.child.matches(&mut info) {}
         return true;
     }
 }
 
-pub struct OptionalParsingExpression {
-    child: Box<dyn ParsingExpression>,
+pub struct OptionalParsingExpression<T> {
+    child: Box<dyn ParsingExpression<T>>,
 }
 
-impl OptionalParsingExpression {
-    pub fn new(child: Box<dyn ParsingExpression>) -> Box<dyn ParsingExpression> {
+impl<T : 'static> OptionalParsingExpression<T> {
+    pub fn new(child: Box<dyn ParsingExpression<T>>) -> Box<dyn ParsingExpression<T>> {
         Box::new(OptionalParsingExpression { child })
     }
 }
-impl ParsingExpression for OptionalParsingExpression {
+impl<T> ParsingExpression<T> for OptionalParsingExpression<T> {
     fn dump(&self) -> String {
         let mut ret = self.child.dump();
         ret.push('?');
         return ret;
     }
-    fn matches(&self, mut info: &mut ParsingInformation) -> bool {
+    fn matches(&self, mut info: &mut ParsingInformation<T>) -> bool {
         self.child.matches(&mut info);
         return true;
     }
 }
 
-pub struct Parser {
-    rules: HashMap<String, Rule>,
+pub struct Parser<T> {
+    rules: HashMap<String, Rule<T>>,
 }
 
-impl Parser {
-    pub fn new() -> Parser {
+impl<T> Parser<T> {
+    pub fn new() -> Parser<T> {
         Parser {
             rules: HashMap::new(),
         }
@@ -258,8 +267,8 @@ impl Parser {
     pub fn add_rule(
         &mut self,
         left_side: &str,
-        right_side: Box<dyn ParsingExpression>,
-        callback: Option<Box<dyn FnMut(ParsingResult) -> ASTNode>>,
+        right_side: Box<dyn ParsingExpression<T>>,
+        callback: Option<Box<dyn Fn(ParsingResult) -> T>>,
     ) {
         self.rules.insert(
             String::from(left_side),
@@ -284,7 +293,7 @@ impl Parser {
     }
 }
 
-impl fmt::Display for Parser {
+impl<T> fmt::Display for Parser<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut res: fmt::Result = fmt::Result::Ok(());
         for (left_side, right_side) in &self.rules {
