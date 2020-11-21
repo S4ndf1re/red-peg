@@ -70,7 +70,7 @@ mod expr_tokenizing {
         );
         assert_eq!(
             tok.next().unwrap(),
-            ExpressionToken::Expression("[a-zA-Z]".to_string())
+            ExpressionToken::TerminalExpression("[a-zA-Z]".to_string())
         );
         assert_eq!(tok.next().unwrap(), ExpressionToken::OneOrMore);
         assert_eq!(tok.next().unwrap(), ExpressionToken::GroupBegin);
@@ -106,7 +106,7 @@ mod expr_tokenizing {
         );
         assert_eq!(
             tok.next().unwrap(),
-            ExpressionToken::Expression("[a-z/A-Z]".to_string())
+            ExpressionToken::TerminalExpression("[a-z/A-Z]".to_string())
         );
         assert_eq!(tok.next().unwrap(), ExpressionToken::OneOrMore);
         assert_eq!(tok.next().unwrap(), ExpressionToken::GroupBegin);

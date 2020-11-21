@@ -194,9 +194,15 @@ impl ExpressionTokenizer {
     fn append_last(&mut self, last_string: String) {
         if last_string.len() > 0 {
             if Self::is_terminal(last_string.as_str()) {
-                self.tokens.push(ExpressionToken::TerminalExpression(
-                    last_string[1..last_string.len() - 1].to_string(),
-                ));
+                if !Self::is_regex(last_string.as_str()) {
+                    self.tokens.push(ExpressionToken::TerminalExpression(
+                        last_string[1..last_string.len() - 1].to_string(),
+                    ));
+                } else {
+                    self.tokens.push(ExpressionToken::TerminalExpression(
+                        last_string.trim().to_string(),
+                    ));
+                }
             } else {
                 self.tokens
                     .push(ExpressionToken::Expression(last_string.trim().to_string()));
@@ -229,5 +235,10 @@ impl ExpressionTokenizer {
             return true;
         }
         return false;
+    }
+
+    fn is_regex(expr: &str) -> bool {
+        let first = expr.chars().nth(0).unwrap();
+        return first == '[';
     }
 }
