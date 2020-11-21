@@ -47,21 +47,28 @@ impl ParsingExpression for TerminalParsingExpression {
                 ret.push('\'');
                 ret
             }
-            TerminalType::REGEX(reg) => {
-                reg.to_string()
-            }
+            TerminalType::REGEX(reg) => reg.to_string(),
         }
     }
 
     fn validate(&self, info: &mut ParsingInformation) -> bool {
         match &self.content {
             TerminalType::SIMPLE(str) => {
+                info.tokenizer.push_state();
                 let token = info.tokenizer.next_token();
-                token.content == *str
+                if token.eof {
+                    info.tokenizer.pop_state();
+                    return false;
+                }
+                if token.content == *str {
+                    info.tokenizer.update_state();
+                    true
+                } else {
+                    info.tokenizer.pop_state();
+                    false
+                }
             }
-            TerminalType::REGEX(reg) => {
-                todo!()
-            }
+            TerminalType::REGEX(reg) => todo!(),
         }
     }
 }
@@ -86,7 +93,11 @@ impl ParsingExpression for NonTerminalParsingExpression {
         return String::from(format!("{}", self.name));
     }
     fn validate(&self, mut info: &mut ParsingInformation) -> bool {
-        return info.rules.get(&self.name).expect("No rule for this non-terminal!").validate(&mut info);
+        return info
+            .rules
+            .get(&self.name)
+            .expect("No rule for this non-terminal!")
+            .validate(&mut info);
     }
 }
 
@@ -119,11 +130,14 @@ impl ParsingExpression for SequenceParsingExpression {
         return ret;
     }
     fn validate(&self, info: &mut ParsingInformation) -> bool {
+        info.tokenizer.push_state();
         for child in &self.children {
             if !child.validate(info) {
+                info.tokenizer.pop_state();
                 return false;
             }
         }
+        info.tokenizer.update_state();
         return true;
     }
 }
@@ -161,13 +175,91 @@ impl ParsingExpression for ChoiceParsingExpresion {
         for child in &self.children {
             info.tokenizer.push_state();
             if child.validate(info) {
+                info.tokenizer.update_state();
                 return true;
+            } else {
+                info.tokenizer.pop_state();
             }
-            info.tokenizer.pop_state();
         }
         return false;
     }
 }
+
+pub struct OneOrMoreParsingExpression {
+    child: Box<dyn ParsingExpression>,
+}
+
+impl OneOrMoreParsingExpression {
+    pub fn new(child: Box<dyn ParsingExpression>) -> Box<dyn ParsingExpression> {
+        Box::new(OneOrMoreParsingExpression { child })
+    }
+}
+impl ParsingExpression for OneOrMoreParsingExpression {
+    fn matches(&self, _tokenizer: &mut CodeTokenizer) -> ParsingResult {
+        ParsingResult {}
+    }
+    fn dump(&self) -> String {
+        let mut ret = self.child.dump();
+        ret.push('+');
+        return ret;
+    }
+    fn validate(&self, mut info: &mut ParsingInformation) -> bool {
+        if !self.child.validate(&mut info) {
+            return false;
+        }
+        while self.child.validate(&mut info) {}
+        true
+    }
+}
+
+pub struct ZeroOrMoreParsingExpression {
+    child: Box<dyn ParsingExpression>,
+}
+
+impl ZeroOrMoreParsingExpression {
+    pub fn new(child: Box<dyn ParsingExpression>) -> Box<dyn ParsingExpression> {
+        Box::new(ZeroOrMoreParsingExpression { child })
+    }
+}
+impl ParsingExpression for ZeroOrMoreParsingExpression {
+    fn matches(&self, _tokenizer: &mut CodeTokenizer) -> ParsingResult {
+        ParsingResult {}
+    }
+    fn dump(&self) -> String {
+        let mut ret = self.child.dump();
+        ret.push('*');
+        return ret;
+    }
+    fn validate(&self, mut info: &mut ParsingInformation) -> bool {
+        while self.child.validate(&mut info) {}
+        return true;
+    }
+}
+
+pub struct OptionalParsingExpression {
+    child: Box<dyn ParsingExpression>,
+}
+
+impl OptionalParsingExpression {
+    pub fn new(child: Box<dyn ParsingExpression>) -> Box<dyn ParsingExpression> {
+        Box::new(OptionalParsingExpression { child })
+    }
+}
+impl ParsingExpression for OptionalParsingExpression {
+    fn matches(&self, _tokenizer: &mut CodeTokenizer) -> ParsingResult {
+        ParsingResult {}
+    }
+    fn dump(&self) -> String {
+        let mut ret = self.child.dump();
+        ret.push('?');
+        return ret;
+    }
+    fn validate(&self, mut info: &mut ParsingInformation) -> bool {
+        self.child.validate(&mut info);
+        return true;
+    }
+}
+
 pub struct Parser {
     rules: HashMap<String, Box<dyn ParsingExpression>>,
 }
@@ -191,6 +283,7 @@ impl Parser {
             rules: &self.rules,
             tokenizer: &mut tokenizer,
         });
+        assert!(tokenizer.only_one_state_left());
         rule_result && tokenizer.is_empty()
     }
 }
