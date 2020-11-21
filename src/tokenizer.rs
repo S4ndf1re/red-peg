@@ -119,10 +119,12 @@ impl CodeTokenizer {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExpressionToken {
     Expression(String),
+    TerminalExpression(String),
     GroupBegin,
     GroupEnd,
     ZeroOrMore,
     OneOrMore,
+    Optional,
     Ordering,
     None, // For ignoring the token
 }
@@ -142,6 +144,7 @@ impl ExpressionTokenizer {
         let mut last_string = String::new();
         let iter = tokenstring.chars().into_iter();
         let mut last = '\0';
+        let mut last_last = '\0'; // NOTE: this is necessary, because of the case \\] in regex parsing
         let mut in_regex = false;
         for c in iter {
             // in_regex and c.is_whitespace must be separate, because they
@@ -149,7 +152,7 @@ impl ExpressionTokenizer {
             // tokenizer other than an expression
             if in_regex {
                 last_string.push(c);
-                if c == ']' && last != '\\' {
+                if c == ']' && (last != '\\' || (last == last_last && last == '\\')) {
                     in_regex = false;
                     tokenizer.append_last(last_string);
                     last_string = String::new();
@@ -162,9 +165,11 @@ impl ExpressionTokenizer {
                         in_regex = true;
                         None
                     }
+                    '?' => Some(ExpressionToken::Optional),
                     '+' => Some(ExpressionToken::OneOrMore),
                     '*' => Some(ExpressionToken::ZeroOrMore),
                     '/' => Some(ExpressionToken::Ordering),
+                    '|' => Some(ExpressionToken::Ordering),
                     _ if c.is_whitespace() => Some(ExpressionToken::None),
                     _ => None,
                 };
@@ -177,6 +182,7 @@ impl ExpressionTokenizer {
                 } else {
                     last_string.push(c);
                     last = c;
+                    last_last = last;
                 }
             }
         }
@@ -187,8 +193,14 @@ impl ExpressionTokenizer {
 
     fn append_last(&mut self, last_string: String) {
         if last_string.len() > 0 {
-            self.tokens
-                .push(ExpressionToken::Expression(last_string.trim().to_string()));
+            if Self::is_terminal(last_string.as_str()) {
+                self.tokens.push(ExpressionToken::TerminalExpression(
+                    last_string[1..last_string.len() - 1].to_string(),
+                ));
+            } else {
+                self.tokens
+                    .push(ExpressionToken::Expression(last_string.trim().to_string()));
+            }
         }
     }
 
@@ -202,5 +214,20 @@ impl ExpressionTokenizer {
             return Some(self.tokens[self.current - 1].clone());
         }
         return None;
+    }
+
+    pub fn peek(&mut self) -> Option<ExpressionToken> {
+        if self.current + 1 < self.tokens.len() {
+            return Some(self.tokens[self.current + 1].clone());
+        }
+        return None;
+    }
+
+    fn is_terminal(expr: &str) -> bool {
+        let first = expr.chars().nth(0).unwrap();
+        if first == '\'' || first == '\"' || first == '[' {
+            return true;
+        }
+        return false;
     }
 }
