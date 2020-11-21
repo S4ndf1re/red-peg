@@ -14,6 +14,7 @@ mod parser {
                 ]),
                 TerminalParsingExpression::new("D"),
             ]),
+            None,
         );
         assert_eq!(format!("{}", p), "Start -> ('A' 'B' 'C' | 'D')");
         let mut p = Parser::new();
@@ -27,6 +28,7 @@ mod parser {
                 ]),
                 TerminalParsingExpression::new("D"),
             ]),
+            None,
         );
         assert_eq!(format!("{}", p), "XYZ -> ('A' | 'B' | 'C') 'D'");
     }
@@ -44,6 +46,7 @@ mod parser {
                 ]),
                 TerminalParsingExpression::new("D"),
             ]),
+            None,
         );
         assert_eq!(format!("{}", p), "XYZ -> (A | 'B' | C) 'D'");
     }
@@ -60,13 +63,14 @@ mod parser {
                 ])),
                 TerminalParsingExpression::new("D"),
             ]),
+            None,
         );
         assert_eq!(format!("{}", p), "Start -> (A+ | 'B' | C*)? 'D'");
     }
     #[test]
     fn validate() {
         let mut parser = Parser::new();
-        parser.add_rule("Start", TerminalParsingExpression::new("a"));
+        parser.add_rule("Start", TerminalParsingExpression::new("a"), None);
         assert!(parser.validate("Start", "a"));
         assert!(!parser.validate("Start", "b"));
 
@@ -77,6 +81,7 @@ mod parser {
                 TerminalParsingExpression::new("a"),
                 TerminalParsingExpression::new("b"),
             ]),
+            None,
         );
         assert!(parser.validate("Start", "a b"));
         assert!(!parser.validate("Start", "a a"));
@@ -92,6 +97,7 @@ mod parser {
                 ]),
                 TerminalParsingExpression::new("c"),
             ]),
+            None,
         );
         assert!(parser.validate("Start", "a c"));
         assert!(parser.validate("Start", "b c"));
@@ -107,6 +113,7 @@ mod parser {
                 ]),
                 TerminalParsingExpression::new("c"),
             ]),
+            None,
         );
         parser.add_rule(
             "Second",
@@ -117,6 +124,7 @@ mod parser {
                 ]),
                 TerminalParsingExpression::new("b"),
             ]),
+            None,
         );
         assert!(parser.validate("Start", "a c"));
         assert!(parser.validate("Start", "b c"));
@@ -129,6 +137,7 @@ mod parser {
         parser.add_rule(
             "Start",
             OptionalParsingExpression::new(TerminalParsingExpression::new("a")),
+            None,
         );
         assert!(parser.validate("Start", ""));
         assert!(parser.validate("Start", "a"));
@@ -141,6 +150,7 @@ mod parser {
                 OneOrMoreParsingExpression::new(TerminalParsingExpression::new("a")),
                 OneOrMoreParsingExpression::new(TerminalParsingExpression::new("b")),
             ]),
+            None,
         );
         assert!(parser.validate("Start", "a a a b b b"));
         assert!(parser.validate("Start", "a b b"));
@@ -160,6 +170,7 @@ mod parser {
                     OneOrMoreParsingExpression::new(TerminalParsingExpression::new("b")),
                 ])),
             ]),
+            None,
         );
         parser.add_rule(
             "Second",
@@ -167,6 +178,7 @@ mod parser {
                 TerminalParsingExpression::new("c"),
                 TerminalParsingExpression::new("d"),
             ]),
+            None,
         );
         assert!(parser.validate("Start", "a a a b b b"));
         assert!(parser.validate("Start", "a b b"));
