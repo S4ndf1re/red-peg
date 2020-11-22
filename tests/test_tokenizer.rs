@@ -79,7 +79,7 @@ mod expr_tokenizing {
             tok.next_token().unwrap(),
             ExpressionToken::Expression("A".to_string())
         );
-        assert_eq!(tok.next_token().unwrap(), ExpressionToken::Ordering);
+        assert_eq!(tok.next_token().unwrap(), ExpressionToken::Choice);
         assert_eq!(
             tok.next_token().unwrap(),
             ExpressionToken::Expression("B".to_string())
@@ -115,7 +115,7 @@ mod expr_tokenizing {
             tok.next_token().unwrap(),
             ExpressionToken::Expression("A".to_string())
         );
-        assert_eq!(tok.next_token().unwrap(), ExpressionToken::Ordering);
+        assert_eq!(tok.next_token().unwrap(), ExpressionToken::Choice);
         assert_eq!(
             tok.next_token().unwrap(),
             ExpressionToken::Expression("B".to_string())

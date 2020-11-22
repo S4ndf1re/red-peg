@@ -302,17 +302,17 @@ impl<T : 'static> Parser<T> {
 
     fn parse_rule(tokenizer: &mut ExpressionTokenizer) -> Box<dyn ParsingExpression<T>> {
         let mut sequence = Vec::new();
-        let mut ordering = Vec::new();
+        let mut choices = Vec::new();
         loop {
             if let Some(token) = tokenizer.next_token() {
                 let expr = match token {
                     ExpressionToken::GroupBegin => Some(Self::parse_rule(tokenizer)),
                     ExpressionToken::GroupEnd => {
-                        if ordering.len() > 0 {
-                            ordering.push(
+                        if choices.len() > 0 {
+                            choices.push(
                                 Self::vec_to_expression(sequence).expect("Invalid PEG grammar"),
                             );
-                            return ChoiceParsingExpression::new(ordering);
+                            return ChoiceParsingExpression::new(choices);
                         } else {
                             return Self::vec_to_expression(sequence).expect("Invalid PEG grammar");
                         }
@@ -323,8 +323,8 @@ impl<T : 'static> Parser<T> {
                     ExpressionToken::TerminalExpression(val) => {
                         Some(TerminalParsingExpression::new(val.as_str()))
                     }
-                    ExpressionToken::Ordering => {
-                        ordering
+                    ExpressionToken::Choice => {
+                        choices
                             .push(Self::vec_to_expression(sequence).expect("Invalid PEG grammar"));
                         sequence = Vec::new();
                         None
@@ -355,9 +355,9 @@ impl<T : 'static> Parser<T> {
             }
         }
 
-        return if ordering.len() >= 1 {
-            ordering.push(Self::vec_to_expression(sequence).expect("Invalid PEG grammar"));
-            ChoiceParsingExpression::new(ordering)
+        return if choices.len() >= 1 {
+            choices.push(Self::vec_to_expression(sequence).expect("Invalid PEG grammar"));
+            ChoiceParsingExpression::new(choices)
         } else {
             Self::vec_to_expression(sequence).expect("Invalid PEG grammar")
         };
