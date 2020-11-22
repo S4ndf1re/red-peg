@@ -193,7 +193,7 @@ mod parser {
 
     #[test]
     fn simple_parsing() {
-        let mut parser : Parser<i32> = Parser::new();
+        let mut parser: Parser<i32> = Parser::new();
         parser.add_rule(
             "Start",
             OptionalParsingExpression::new(TerminalParsingExpression::new("a")),
@@ -204,5 +204,88 @@ mod parser {
         assert!(parser.validate("Start", ""));
         assert!(parser.validate("Start", "a"));
         assert!(!parser.validate("Start", "b"));
+    }
+
+    fn stringify_choice_sequence_terinal_from_str() {
+        let mut p = Parser::new();
+        p.add_rule_str("Start", "'A' 'B' 'C' | 'D'");
+        assert_eq!(format!("{}", p), "Start -> ('A' 'B' 'C' | 'D')");
+        let mut p = Parser::new();
+        p.add_rule_str("XYZ", "(\'A\' | \'B\' | \'C\') \'D\'");
+        assert_eq!(format!("{}", p), "XYZ -> ('A' | 'B' | 'C') 'D'");
+    }
+
+    #[test]
+    fn stringify_non_terminal_from_str() {
+        let mut p = Parser::new();
+        p.add_rule_str("XYZ", "(A | 'B' | C) 'D'");
+        assert_eq!(format!("{}", p), "XYZ -> (A | 'B' | C) 'D'");
+    }
+
+    #[test]
+    fn stringify_quantifiers_from_str() {
+        let mut p = Parser::new();
+        p.add_rule_str("Start", "(A+ | 'B' | C*)? 'D'");
+        assert_eq!(format!("{}", p), "Start -> (A+ | 'B' | C*)? 'D'");
+    }
+
+    #[test]
+    fn validate_from_str() {
+        let mut parser = Parser::new();
+        parser.add_rule_str("Start", "'a'");
+        assert!(parser.validate("Start", "a"));
+        assert!(!parser.validate("Start", "b"));
+
+        let mut parser = Parser::new();
+        parser.add_rule_str("Start", "'a' 'b'");
+        assert!(parser.validate("Start", "a b"));
+        assert!(!parser.validate("Start", "a a"));
+        assert!(!parser.validate("Start", "b a a"));
+
+        let mut parser = Parser::new();
+        parser.add_rule_str("Start", "('a' | 'b') 'c'");
+        assert!(parser.validate("Start", "a c"));
+        assert!(parser.validate("Start", "b c"));
+        assert!(!parser.validate("Start", "a b"));
+
+        let mut parser = Parser::new();
+        parser.add_rule_str("Start", "('a' | Second) 'c'");
+        parser.add_rule_str("Second", "('c' 'd') | 'b'");
+        assert!(parser.validate("Start", "a c"));
+        assert!(parser.validate("Start", "b c"));
+        assert!(parser.validate("Start", "c d c"));
+        assert!(!parser.validate("Start", "c d b c "));
+    }
+
+    #[test]
+    fn validate_quantifiers_str() {
+        let mut parser = Parser::new();
+        parser.add_rule_str("Start", "'a'?");
+        assert!(parser.validate("Start", ""));
+        assert!(parser.validate("Start", "a"));
+        assert!(!parser.validate("Start", "b"));
+
+        let mut parser = Parser::new();
+        parser.add_rule_str("Start", "'a'+ 'b'+");
+        assert!(parser.validate("Start", "a a a b b b"));
+        assert!(parser.validate("Start", "a b b"));
+        assert!(parser.validate("Start", "a a b"));
+        assert!(!parser.validate("Start", "a"));
+        assert!(!parser.validate("Start", "a a b a"));
+
+        // Start -> (a b)* | Second
+        // Second -> c | d
+        let mut parser = Parser::new();
+        parser.add_rule_str("Start", "Second+ | ('a'+ 'b'+)*");
+        parser.add_rule_str("Second", "'c' 'd'");
+        assert!(parser.validate("Start", "a a a b b b"));
+        assert!(parser.validate("Start", "a b b"));
+        assert!(parser.validate("Start", "a a b"));
+        assert!(!parser.validate("Start", "a"));
+        assert!(!parser.validate("Start", "a a b a"));
+        assert!(parser.validate("Start", "a a b a a a b b b a a a b"));
+        assert!(!parser.validate("Start", "a a b a a a b b b a a a"));
+        assert!(parser.validate("Start", "c d c d"));
+        assert!(!parser.validate("Start", "c d c"));
     }
 }
