@@ -1,4 +1,4 @@
-use crate::tokenizer::CodeTokenizer;
+use crate::tokenizer::{CodeTokenizer, ExpressionToken, ExpressionTokenizer};
 use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
@@ -290,6 +290,89 @@ impl<T> Parser<T> {
         });
         assert!(tokenizer.only_one_state_left());
         rule_result && tokenizer.is_empty()
+    }
+
+    pub fn add_rule_str(&mut self, left_side: &str, right_side: &str) {
+        self.add_rule(
+            left_side,
+            Self::parse_rule(&mut ExpressionTokenizer::new(right_side)),
+        );
+    }
+
+    fn parse_rule(tokenizer: &mut ExpressionTokenizer) -> Box<dyn ParsingExpression> {
+        let mut sequence = Vec::new();
+        let mut ordering = Vec::new();
+        loop {
+            if let Some(token) = tokenizer.next() {
+                let expr = match token {
+                    ExpressionToken::GroupBegin => Some(Self::parse_rule(tokenizer)),
+                    ExpressionToken::GroupEnd => {
+                        if ordering.len() > 0 {
+                            ordering.push(
+                                Self::vec_to_expression(sequence).expect("Invalid PEG grammar"),
+                            );
+                            return ChoiceParsingExpresion::new(ordering);
+                        } else {
+                            return Self::vec_to_expression(sequence).expect("Invalid PEG grammar");
+                        }
+                    }
+                    ExpressionToken::Expression(val) => {
+                        Some(NonTerminalParsingExpression::new(val.as_str()))
+                    }
+                    ExpressionToken::TerminalExpression(val) => {
+                        Some(TerminalParsingExpression::new(val.as_str()))
+                    }
+                    ExpressionToken::Ordering => {
+                        ordering
+                            .push(Self::vec_to_expression(sequence).expect("Invalid PEG grammar"));
+                        sequence = Vec::new();
+                        None
+                    }
+                    ExpressionToken::ZeroOrMore => {
+                        let child = sequence.remove(sequence.len() - 1); // Panics if invalid grammar
+                        sequence.push(ZeroOrMoreParsingExpression::new(child));
+                        None
+                    }
+                    ExpressionToken::OneOrMore => {
+                        let child = sequence.remove(sequence.len() - 1); // Panics if invalid grammar
+                        sequence.push(OneOrMoreParsingExpression::new(child));
+                        None
+                    }
+                    ExpressionToken::Optional => {
+                        let child = sequence.remove(sequence.len() - 1); // Panics if invalid grammar
+                        sequence.push(OptionalParsingExpression::new(child));
+                        None
+                    }
+                    _ => None,
+                };
+
+                if let Some(val) = expr {
+                    sequence.push(val);
+                }
+            } else {
+                break;
+            }
+        }
+
+        return if ordering.len() >= 1 {
+            ordering.push(Self::vec_to_expression(sequence).expect("Invalid PEG grammar"));
+            ChoiceParsingExpresion::new(ordering)
+        } else {
+            Self::vec_to_expression(sequence).expect("Invalid PEG grammar")
+        };
+    }
+
+    fn vec_to_expression(
+        mut vec: Vec<Box<dyn ParsingExpression>>,
+    ) -> Option<Box<dyn ParsingExpression>> {
+        if !vec.is_empty() {
+            if vec.len() > 1 {
+                return Some(SequenceParsingExpression::new(vec));
+            } else {
+                return Some(vec.remove(0));
+            }
+        }
+        return None;
     }
 }
 
