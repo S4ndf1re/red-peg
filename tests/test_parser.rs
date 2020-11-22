@@ -273,8 +273,6 @@ mod parser {
         assert!(!parser.validate("Start", "a"));
         assert!(!parser.validate("Start", "a a b a"));
 
-        // Start -> (a b)* | Second
-        // Second -> c | d
         let mut parser : Parser<()> = Parser::new();
         parser.add_rule_str("Start", "Second+ | ('a'+ 'b'+)*", None);
         parser.add_rule_str("Second", "'c' 'd'", None);
