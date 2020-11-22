@@ -258,7 +258,7 @@ pub struct Parser<T> {
     rules: HashMap<String, Rule<T>>,
 }
 
-impl<T> Parser<T> {
+impl<T : 'static> Parser<T> {
     pub fn new() -> Parser<T> {
         Parser {
             rules: HashMap::new(),
@@ -292,14 +292,15 @@ impl<T> Parser<T> {
         rule_result && tokenizer.is_empty()
     }
 
-    pub fn add_rule_str(&mut self, left_side: &str, right_side: &str) {
+    pub fn add_rule_str(&mut self, left_side: &str, right_side: &str, callback: Option<Box<dyn Fn(ParsingResult) -> T>>) {
         self.add_rule(
             left_side,
             Self::parse_rule(&mut ExpressionTokenizer::new(right_side)),
+            callback
         );
     }
 
-    fn parse_rule(tokenizer: &mut ExpressionTokenizer) -> Box<dyn ParsingExpression> {
+    fn parse_rule(tokenizer: &mut ExpressionTokenizer) -> Box<dyn ParsingExpression<T>> {
         let mut sequence = Vec::new();
         let mut ordering = Vec::new();
         loop {
@@ -363,8 +364,8 @@ impl<T> Parser<T> {
     }
 
     fn vec_to_expression(
-        mut vec: Vec<Box<dyn ParsingExpression>>,
-    ) -> Option<Box<dyn ParsingExpression>> {
+        mut vec: Vec<Box<dyn ParsingExpression<T>>>,
+    ) -> Option<Box<dyn ParsingExpression<T>>> {
         if !vec.is_empty() {
             if vec.len() > 1 {
                 return Some(SequenceParsingExpression::new(vec));
