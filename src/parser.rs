@@ -146,21 +146,21 @@ impl<T> ParsingExpression<T> for SequenceParsingExpression<T> {
     }
 }
 
-pub struct ChoiceParsingExpresion<T : 'static> {
+pub struct ChoiceParsingExpression<T : 'static> {
     children: Vec<Box<dyn ParsingExpression<T>>>,
     _marker: PhantomData<T>
 }
 
-impl<T : 'static> ChoiceParsingExpresion<T> {
+impl<T : 'static> ChoiceParsingExpression<T> {
     pub fn new(p_children: Vec<Box<dyn ParsingExpression<T>>>) -> Box<dyn ParsingExpression<T>> {
-        Box::new(ChoiceParsingExpresion {
+        Box::new(ChoiceParsingExpression {
             children: p_children,
             _marker: Default::default()
         })
     }
 }
 
-impl<T> ParsingExpression<T> for ChoiceParsingExpresion<T> {
+impl<T> ParsingExpression<T> for ChoiceParsingExpression<T> {
     fn dump(&self) -> String {
         let mut ret = String::from("(");
         let mut i = 0;
@@ -312,7 +312,7 @@ impl<T : 'static> Parser<T> {
                             ordering.push(
                                 Self::vec_to_expression(sequence).expect("Invalid PEG grammar"),
                             );
-                            return ChoiceParsingExpresion::new(ordering);
+                            return ChoiceParsingExpression::new(ordering);
                         } else {
                             return Self::vec_to_expression(sequence).expect("Invalid PEG grammar");
                         }
@@ -357,7 +357,7 @@ impl<T : 'static> Parser<T> {
 
         return if ordering.len() >= 1 {
             ordering.push(Self::vec_to_expression(sequence).expect("Invalid PEG grammar"));
-            ChoiceParsingExpresion::new(ordering)
+            ChoiceParsingExpression::new(ordering)
         } else {
             Self::vec_to_expression(sequence).expect("Invalid PEG grammar")
         };

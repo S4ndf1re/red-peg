@@ -6,7 +6,7 @@ mod parser {
         let mut p : Parser<()> = Parser::new();
         p.add_rule(
             "Start",
-            ChoiceParsingExpresion::new(vec![
+            ChoiceParsingExpression::new(vec![
                 SequenceParsingExpression::new(vec![
                     TerminalParsingExpression::new("A"),
                     TerminalParsingExpression::new("B"),
@@ -21,7 +21,7 @@ mod parser {
         p.add_rule(
             "XYZ",
             SequenceParsingExpression::new(vec![
-                ChoiceParsingExpresion::new(vec![
+                ChoiceParsingExpression::new(vec![
                     TerminalParsingExpression::new("A"),
                     TerminalParsingExpression::new("B"),
                     TerminalParsingExpression::new("C"),
@@ -39,7 +39,7 @@ mod parser {
         p.add_rule(
             "XYZ",
             SequenceParsingExpression::new(vec![
-                ChoiceParsingExpresion::new(vec![
+                ChoiceParsingExpression::new(vec![
                     NonTerminalParsingExpression::new("A"),
                     TerminalParsingExpression::new("B"),
                     NonTerminalParsingExpression::new("C"),
@@ -56,7 +56,7 @@ mod parser {
         p.add_rule(
             "Start",
             SequenceParsingExpression::new(vec![
-                OptionalParsingExpression::new(ChoiceParsingExpresion::new(vec![
+                OptionalParsingExpression::new(ChoiceParsingExpression::new(vec![
                     OneOrMoreParsingExpression::new(NonTerminalParsingExpression::new("A")),
                     TerminalParsingExpression::new("B"),
                     ZeroOrMoreParsingExpression::new(NonTerminalParsingExpression::new("C")),
@@ -91,7 +91,7 @@ mod parser {
         parser.add_rule(
             "Start",
             SequenceParsingExpression::new(vec![
-                ChoiceParsingExpresion::new(vec![
+                ChoiceParsingExpression::new(vec![
                     TerminalParsingExpression::new("a"),
                     TerminalParsingExpression::new("b"),
                 ]),
@@ -107,7 +107,7 @@ mod parser {
         parser.add_rule(
             "Start",
             SequenceParsingExpression::new(vec![
-                ChoiceParsingExpresion::new(vec![
+                ChoiceParsingExpression::new(vec![
                     TerminalParsingExpression::new("a"),
                     NonTerminalParsingExpression::new("Second"),
                 ]),
@@ -117,7 +117,7 @@ mod parser {
         );
         parser.add_rule(
             "Second",
-            ChoiceParsingExpresion::new(vec![
+            ChoiceParsingExpression::new(vec![
                 SequenceParsingExpression::new(vec![
                     TerminalParsingExpression::new("c"),
                     TerminalParsingExpression::new("d"),
@@ -163,7 +163,7 @@ mod parser {
         let mut parser : Parser<()> = Parser::new();
         parser.add_rule(
             "Start",
-            ChoiceParsingExpresion::new(vec![
+            ChoiceParsingExpression::new(vec![
                 OneOrMoreParsingExpression::new(NonTerminalParsingExpression::new("Second")),
                 ZeroOrMoreParsingExpression::new(SequenceParsingExpression::new(vec![
                     OneOrMoreParsingExpression::new(TerminalParsingExpression::new("a")),
@@ -206,7 +206,7 @@ mod parser {
         assert!(!parser.validate("Start", "b"));
     }
 
-    fn stringify_choice_sequence_terinal_from_str() {
+    fn stringify_choice_sequence_terminal_from_str() {
         let mut p : Parser<()> = Parser::new();
         p.add_rule_str("Start", "'A' 'B' 'C' | 'D'", None);
         assert_eq!(format!("{}", p), "Start -> ('A' 'B' 'C' | 'D')");
