@@ -4,16 +4,14 @@ use std::fmt;
 pub struct Token {
     pub line: usize,
     pub column: usize,
-    pub content: String,
-    pub eof: bool,
+    pub content: String
 }
 
 #[derive(fmt::Debug)]
 pub struct CodeTokenizer {
     code: String,
     tokens: Vec<Token>,
-    states: Vec<usize>,
-    eof_token: Token,
+    states: Vec<usize>
 }
 
 impl CodeTokenizer {
@@ -21,13 +19,7 @@ impl CodeTokenizer {
         let mut tokenizer = CodeTokenizer {
             code: String::from(code),
             tokens: Vec::new(),
-            states: vec![0usize],
-            eof_token: Token {
-                line: 0,
-                column: 0,
-                content: String::new(),
-                eof: true,
-            },
+            states: vec![0usize]
         };
         let mut line = 1usize;
         let mut column = 1usize;
@@ -39,8 +31,7 @@ impl CodeTokenizer {
                     tokenizer.tokens.push(Token {
                         line,
                         column: column - (i - token_start),
-                        content: String::from(&tokenizer.code[token_start..i]),
-                        eof: false,
+                        content: String::from(&tokenizer.code[token_start..i])
                     });
                     just_added_token = true;
                 }
@@ -63,19 +54,18 @@ impl CodeTokenizer {
             tokenizer.tokens.push(Token {
                 line,
                 column,
-                content: String::from(&tokenizer.code[token_start..tokenizer.code.len()]),
-                eof: false,
+                content: String::from(&tokenizer.code[token_start..tokenizer.code.len()])
             });
         }
         return tokenizer;
     }
-    pub fn next_token(&mut self) -> &Token {
+    pub fn next_token(&mut self) -> Option<&Token> {
         let index = self.states.last_mut().expect("No state left!");
         if self.tokens.len() > *index {
             *index += 1;
-            self.tokens.get(*index - 1).expect("Unable to fetch token!")
+            Some(self.tokens.get(*index - 1).expect("Unable to fetch token!"))
         } else {
-            &self.eof_token
+            None
         }
     }
     pub fn is_empty(&self) -> bool {
@@ -214,7 +204,7 @@ impl ExpressionTokenizer {
         return self.tokens.len();
     }
 
-    pub fn next(&mut self) -> Option<ExpressionToken> {
+    pub fn next_token(&mut self) -> Option<ExpressionToken> {
         if self.current < self.tokens_len() {
             self.current += 1;
             return Some(self.tokens[self.current - 1].clone());
@@ -222,9 +212,9 @@ impl ExpressionTokenizer {
         return None;
     }
 
-    pub fn peek(&mut self) -> Option<ExpressionToken> {
+    pub fn peek_token(&mut self) -> Option<&ExpressionToken> {
         if self.current + 1 < self.tokens.len() {
-            return Some(self.tokens[self.current + 1].clone());
+            return Some(&self.tokens[self.current + 1]);
         }
         return None;
     }

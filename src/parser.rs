@@ -60,17 +60,17 @@ impl<T> ParsingExpression<T> for TerminalParsingExpression<T> {
         match &self.content {
             TerminalType::SIMPLE(str) => {
                 info.tokenizer.push_state();
-                let token = info.tokenizer.next_token();
-                if token.eof {
-                    info.tokenizer.pop_state();
-                    return false;
-                }
-                if token.content == *str {
-                    info.tokenizer.update_state();
-                    true
+                if let Some(token) = info.tokenizer.next_token() {
+                    if token.content == *str {
+                        info.tokenizer.update_state();
+                        true
+                    } else {
+                        info.tokenizer.pop_state();
+                        false
+                    }
                 } else {
                     info.tokenizer.pop_state();
-                    false
+                    return false;
                 }
             }
             TerminalType::REGEX(reg) => todo!(),
@@ -304,7 +304,7 @@ impl<T : 'static> Parser<T> {
         let mut sequence = Vec::new();
         let mut ordering = Vec::new();
         loop {
-            if let Some(token) = tokenizer.next() {
+            if let Some(token) = tokenizer.next_token() {
                 let expr = match token {
                     ExpressionToken::GroupBegin => Some(Self::parse_rule(tokenizer)),
                     ExpressionToken::GroupEnd => {
