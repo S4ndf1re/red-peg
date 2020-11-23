@@ -4,14 +4,14 @@ use std::fmt;
 pub struct Token {
     pub line: usize,
     pub column: usize,
-    pub content: String
+    pub content: String,
 }
 
 #[derive(fmt::Debug)]
 pub struct CodeTokenizer {
     code: String,
     tokens: Vec<Token>,
-    states: Vec<usize>
+    states: Vec<usize>,
 }
 
 impl CodeTokenizer {
@@ -19,7 +19,7 @@ impl CodeTokenizer {
         let mut tokenizer = CodeTokenizer {
             code: String::from(code),
             tokens: Vec::new(),
-            states: vec![0usize]
+            states: vec![0usize],
         };
         let mut line = 1usize;
         let mut column = 1usize;
@@ -31,7 +31,7 @@ impl CodeTokenizer {
                     tokenizer.tokens.push(Token {
                         line,
                         column: column - (i - token_start),
-                        content: String::from(&tokenizer.code[token_start..i])
+                        content: String::from(&tokenizer.code[token_start..i]),
                     });
                     just_added_token = true;
                 }
@@ -54,7 +54,7 @@ impl CodeTokenizer {
             tokenizer.tokens.push(Token {
                 line,
                 column,
-                content: String::from(&tokenizer.code[token_start..tokenizer.code.len()])
+                content: String::from(&tokenizer.code[token_start..tokenizer.code.len()]),
             });
         }
         return tokenizer;
@@ -73,14 +73,15 @@ impl CodeTokenizer {
         self.tokens.len() <= *index
     }
 
-    pub fn push_state(&mut self) {
+    pub fn push_state(&mut self) -> usize {
         self.states
-            .push(self.states.last().expect("No current state!").clone())
+            .push(self.states.last().expect("No current state!").clone());
+        *self.states.last().unwrap()
     }
     /* Takes the topmost value in the stack, saves it, pops it off the stack
      * and writes it to the new top-entry.
      */
-    pub fn update_state(&mut self) {
+    pub fn update_state(&mut self) -> usize {
         let current_state = *self.states.last().expect("Nu current state!");
         self.states.pop();
         let state_below = self
@@ -88,6 +89,14 @@ impl CodeTokenizer {
             .last_mut()
             .expect("No state below the current one!");
         *state_below = current_state;
+        current_state
+    }
+
+    pub fn get_token_sublist(&self, start: usize, end: usize) -> &[Token] {
+        return &self.tokens[start..end];
+    }
+    pub fn get_state(&self) -> usize {
+        *self.states.last().expect("No state left!")
     }
 
     pub fn only_one_state_left(&self) -> bool {
