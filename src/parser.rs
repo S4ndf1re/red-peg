@@ -13,9 +13,10 @@ pub struct ParsingResult<T> {
     pub rule_result: Option<T>,
 }
 
+type RuleCallback<T> = Box<dyn Fn(&ParsingResult<T>) -> T>;
 pub struct Rule<T> {
     expression: Box<dyn ParsingExpression<T>>,
-    callback: Option<Box<dyn Fn(&ParsingResult<T>) -> T>>,
+    callback: Option<RuleCallback<T>>,
 }
 
 pub struct ParsingInformation<'a, T> {
@@ -115,7 +116,7 @@ impl<T> ParsingExpression<T> for NonTerminalParsingExpression<T> {
         match rule.expression.matches(&mut info) {
             Some(mut res) => {
                 if let Some(ref callback) = rule.callback {
-                    res.rule_result = Some(callback(&res));
+                    res.rule_result = Some(callback(&res, &info.tokenizer));
                 }
                 Some(res)
             }
@@ -339,7 +340,7 @@ impl<T: 'static> Parser<T> {
         &mut self,
         left_side: &str,
         right_side: Box<dyn ParsingExpression<T>>,
-        callback: Option<Box<dyn Fn(&ParsingResult<T>) -> T>>,
+        callback: Option<RuleCallback<T>>,
     ) {
         self.rules.insert(
             String::from(left_side),
@@ -386,7 +387,7 @@ impl<T: 'static> Parser<T> {
         &mut self,
         left_side: &str,
         right_side: &str,
-        callback: Option<Box<dyn Fn(&ParsingResult<T>) -> T>>,
+        callback: Option<RuleCallback<T>>,
     ) {
         self.add_rule(
             left_side,
