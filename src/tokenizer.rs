@@ -145,13 +145,12 @@ impl ExpressionTokenizer {
         let mut last = '\0';
         let mut last_last = '\0'; // NOTE: this is necessary, because of the case \\] in regex parsing
         let mut in_regex = false;
+        let mut terminal_char = '\0';
         for c in iter {
-            // in_regex and c.is_whitespace must be separate, because they
-            // need a tokenizer.append_last() call, while not appending any token to the
-            // tokenizer other than an expression
+            // last and last_last are needed to prevent \] from getting accepted and to allow \\] getting accepted
             if in_regex {
                 last_string.push(c);
-                if c == ']' && (last != '\\' || (last == last_last && last == '\\')) {
+                if c == terminal_char && (last != '\\' || (last == last_last && last == '\\')) {
                     in_regex = false;
                     tokenizer.append_last(last_string);
                     last_string = String::new();
@@ -160,15 +159,15 @@ impl ExpressionTokenizer {
                 let expr = match c {
                     '(' => Some(ExpressionToken::GroupBegin),
                     ')' => Some(ExpressionToken::GroupEnd),
-                    '[' => {
+                    '[' | '\'' | '\"' => {
+                        terminal_char = c;
                         in_regex = true;
                         None
                     }
                     '?' => Some(ExpressionToken::Optional),
                     '+' => Some(ExpressionToken::OneOrMore),
                     '*' => Some(ExpressionToken::ZeroOrMore),
-                    '/' => Some(ExpressionToken::Choice),
-                    '|' => Some(ExpressionToken::Choice),
+                    '/' | '|' => Some(ExpressionToken::Choice),
                     _ if c.is_whitespace() => Some(ExpressionToken::None),
                     _ => None,
                 };
