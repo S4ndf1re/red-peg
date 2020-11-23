@@ -13,7 +13,7 @@ pub struct ParsingResult<T> {
     pub rule_result: Option<T>,
 }
 
-type RuleCallback<T> = Box<dyn Fn(&ParsingResult<T>) -> T>;
+type RuleCallback<T> = Box<dyn Fn(&ParsingResult<T>, &CodeTokenizer) -> T>;
 pub struct Rule<T> {
     expression: Box<dyn ParsingExpression<T>>,
     callback: Option<RuleCallback<T>>,

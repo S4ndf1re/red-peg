@@ -2,6 +2,7 @@
 mod parser {
     use red_peg::parser::*;
     use red_peg::tokenizer::ExpressionToken::ZeroOrMore;
+    use red_peg::tokenizer::CodeTokenizer;
 
     #[test]
     fn stringify_choice_sequence_terminal() {
@@ -199,7 +200,7 @@ mod parser {
         parser.add_rule(
             "Start",
             OptionalParsingExpression::new(TerminalParsingExpression::new("a")),
-            Some(Box::new(|r: &ParsingResult<i32>| 5i32)),
+            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| 5i32)),
         );
         assert!(parser.validate("Start", ""));
         assert!(parser.validate("Start", "a"));
@@ -210,7 +211,7 @@ mod parser {
         parser.add_rule_str(
             "Expr",
             "Sum",
-            Some(Box::new(|r: &ParsingResult<i32>| r.rule_result.unwrap())),
+            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| r.rule_result.unwrap())),
         );
         parser.add_rule(
             "Sum",
@@ -221,7 +222,7 @@ mod parser {
                     NonTerminalParsingExpression::new("Value")
                 ])),
             ]),
-            Some(Box::new(|r: &ParsingResult<i32>| {
+            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
                 let mut sum = r.sub_results.get(0).unwrap().rule_result.unwrap();
                 for v in &r.sub_results.get(1).unwrap().sub_results {
                     sum += v.sub_results.get(1).unwrap().rule_result.unwrap();
@@ -232,11 +233,12 @@ mod parser {
         parser.add_rule_str(
             "Value",
             "'0' | '1' | '2'",
-            Some(Box::new(|r: &ParsingResult<i32>| {
-                return 2;
+            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
+                let i : i32 = t.get_token_sublist(r.parsed_tokens_start, r.parsed_tokens_end).get(0).unwrap().content.parse().unwrap();
+                return i;
             })),
         );
-        assert_eq!(parser.parse("Expr", "2 + 2 + 1").unwrap(), 6i32);
+        assert_eq!(parser.parse("Expr", "2 + 0 + 1").unwrap(), 3i32);
     }
 
     fn stringify_choice_sequence_terminal_from_str() {
