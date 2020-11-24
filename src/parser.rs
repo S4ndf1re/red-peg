@@ -48,6 +48,12 @@ impl<T: 'static> TerminalParsingExpression<T> {
             _marker: Default::default(),
         })
     }
+    pub fn new_from_regex(p_name: &str) -> Box<dyn ParsingExpression<T>> {
+        Box::new(TerminalParsingExpression {
+            content: TerminalType::REGEX(Regex::new(p_name).unwrap()),
+            _marker: Default::default(),
+        })
+    }
 }
 
 impl<T> ParsingExpression<T> for TerminalParsingExpression<T> {
@@ -64,28 +70,31 @@ impl<T> ParsingExpression<T> for TerminalParsingExpression<T> {
     }
 
     fn matches(&self, info: &mut ParsingInformation<T>) -> Option<ParsingResult<T>> {
-        match &self.content {
-            TerminalType::SIMPLE(str) => {
-                let start = info.tokenizer.push_state();
-                return if let Some(token) = info.tokenizer.next_token() {
-                    if token.content == *str {
-                        Some(ParsingResult {
-                            parsed_tokens_start: start,
-                            parsed_tokens_end: info.tokenizer.update_state(),
-                            sub_results: Vec::new(),
-                            selected_choice: None,
-                            rule_result: None,
-                        })
-                    } else {
-                        info.tokenizer.pop_state();
-                        None
-                    }
-                } else {
-                    info.tokenizer.pop_state();
-                    None
-                };
+        let start = info.tokenizer.push_state();
+        return if let Some(token) = info.tokenizer.next_token() {
+            let does_match = match &self.content {
+                TerminalType::SIMPLE(str) => {
+                    *str == token.content
+                }
+                TerminalType::REGEX(reg) => {
+                    reg.is_match(token.content.as_str())
+                }
+            };
+            if does_match {
+                Some(ParsingResult {
+                    parsed_tokens_start: start,
+                    parsed_tokens_end: info.tokenizer.update_state(),
+                    sub_results: Vec::new(),
+                    selected_choice: None,
+                    rule_result: None,
+                })
+            } else {
+                info.tokenizer.pop_state();
+                None
             }
-            TerminalType::REGEX(reg) => todo!(),
+        } else {
+            info.tokenizer.pop_state();
+            None
         }
     }
 }
@@ -418,6 +427,9 @@ impl<T: 'static> Parser<T> {
                     }
                     ExpressionToken::TerminalExpression(val) => {
                         Some(TerminalParsingExpression::new(val.as_str()))
+                    },
+                    ExpressionToken::TerminalRegexExpression(val) => {
+                        Some(TerminalParsingExpression::new_from_regex(val.as_str()))
                     }
                     ExpressionToken::Choice => {
                         choices
@@ -440,7 +452,7 @@ impl<T: 'static> Parser<T> {
                         sequence.push(OptionalParsingExpression::new(child));
                         None
                     }
-                    _ => None,
+                    ExpressionToken::None => None
                 };
 
                 if let Some(val) = expr {

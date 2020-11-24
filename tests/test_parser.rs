@@ -213,15 +213,9 @@ mod parser {
             "Sum",
             Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| r.rule_result.unwrap())),
         );
-        parser.add_rule(
+        parser.add_rule_str(
             "Sum",
-            SequenceParsingExpression::new(vec![
-                NonTerminalParsingExpression::new("Value"),
-                ZeroOrMoreParsingExpression::new(SequenceParsingExpression::new(vec![
-                    TerminalParsingExpression::new(("+")),
-                    NonTerminalParsingExpression::new("Value")
-                ])),
-            ]),
+            "Value (('+') Value)*",
             Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
                 let mut sum = r.sub_results.get(0).unwrap().rule_result.unwrap();
                 for v in &r.sub_results.get(1).unwrap().sub_results {
@@ -232,13 +226,13 @@ mod parser {
         );
         parser.add_rule_str(
             "Value",
-            "'0' | '1' | '2'",
+            "[\\d]",
             Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
                 let i : i32 = t.get_token_sublist(r.parsed_tokens_start, r.parsed_tokens_end).get(0).unwrap().content.parse().unwrap();
                 return i;
             })),
         );
-        assert_eq!(parser.parse("Expr", "2 + 0 + 1").unwrap(), 3i32);
+        assert_eq!(parser.parse("Expr", "2 + 0 + 1 + 2323").unwrap(), 2326i32);
     }
 
     fn stringify_choice_sequence_terminal_from_str() {

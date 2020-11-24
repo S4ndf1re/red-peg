@@ -1,4 +1,5 @@
 use std::fmt;
+use regex::Regex;
 
 #[derive(Clone, fmt::Debug)]
 pub struct Token {
@@ -119,6 +120,7 @@ impl CodeTokenizer {
 pub enum ExpressionToken {
     Expression(String),
     TerminalExpression(String),
+    TerminalRegexExpression(String),
     GroupBegin,
     GroupEnd,
     ZeroOrMore,
@@ -195,13 +197,13 @@ impl ExpressionTokenizer {
     fn append_last(&mut self, last_string: String) {
         if last_string.len() > 0 {
             if Self::is_terminal(last_string.as_str()) {
-                if !Self::is_regex(last_string.as_str()) {
-                    self.tokens.push(ExpressionToken::TerminalExpression(
-                        last_string[1..last_string.len() - 1].to_string(),
+                if Self::is_regex(last_string.as_str()) {
+                    self.tokens.push(ExpressionToken::TerminalRegexExpression(
+                        last_string.trim().to_string()
                     ));
                 } else {
                     self.tokens.push(ExpressionToken::TerminalExpression(
-                        last_string.trim().to_string(),
+                        last_string[1..last_string.len() - 1].to_string()
                     ));
                 }
             } else {
