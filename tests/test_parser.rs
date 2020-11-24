@@ -214,7 +214,7 @@ mod parser {
         );
         broken_calculator.add_rule_str(
             "Sum",
-            "Value (('+' | '-') Value)*",
+            "Product (('+' | '-') Product)*",
             Some(Box::new(|r: &ParsingResult<i32>, _t: &CodeTokenizer| {
                 let mut sum = r.sub_results.get(0).unwrap().rule_result.unwrap();
                 for v in &r.sub_results.get(1).unwrap().sub_results {
@@ -223,6 +223,22 @@ mod parser {
                         sum += second_value;
                     } else {
                         sum -= second_value;
+                    }
+                }
+                return sum;
+            })),
+        );
+        broken_calculator.add_rule_str(
+            "Product",
+            "Value (('*' | '/') Value)*",
+            Some(Box::new(|r: &ParsingResult<i32>, _t: &CodeTokenizer| {
+                let mut sum = r.sub_results.get(0).unwrap().rule_result.unwrap();
+                for v in &r.sub_results.get(1).unwrap().sub_results {
+                    let second_value = v.sub_results.get(1).unwrap().rule_result.unwrap();
+                    if v.sub_results.get(0).unwrap().selected_choice.unwrap() == 0 {
+                        sum *= second_value;
+                    } else {
+                        sum /= second_value;
                     }
                 }
                 return sum;
@@ -239,6 +255,8 @@ mod parser {
         assert_eq!(broken_calculator.parse("Expr", "2 + 0 + 1 + 2323").unwrap(), 2326i32);
         assert_eq!(broken_calculator.parse("Expr", "2 - 5").unwrap(), -3i32);
         assert_eq!(broken_calculator.parse("Expr", "2 - 3 + 1").unwrap(), 0i32);
+        assert_eq!(broken_calculator.parse("Expr", "2 * 4 - 3").unwrap(), 5i32);
+        assert_eq!(broken_calculator.parse("Expr", "2 - 4 / 2").unwrap(), 0i32);
     }
 
     #[test]
