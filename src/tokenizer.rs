@@ -1,5 +1,4 @@
 use std::fmt;
-use regex::Regex;
 
 #[derive(Clone, fmt::Debug)]
 pub struct Token {

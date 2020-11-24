@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod parser {
     use red_peg::parser::*;
-    use red_peg::tokenizer::ExpressionToken::ZeroOrMore;
     use red_peg::tokenizer::CodeTokenizer;
 
     #[test]
@@ -200,23 +199,23 @@ mod parser {
         parser.add_rule(
             "Start",
             OptionalParsingExpression::new(TerminalParsingExpression::new("a")),
-            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| 5i32)),
+            Some(Box::new(|_r: &ParsingResult<i32>, _t: &CodeTokenizer| 5i32)),
         );
         assert!(parser.validate("Start", ""));
         assert!(parser.validate("Start", "a"));
         assert!(!parser.validate("Start", "b"));
         assert_eq!(parser.parse("Start", "a").unwrap(), 5i32);
 
-        let broken_calculator: Parser<i32> = Parser::new();
-        parser.add_rule_str(
+        let mut broken_calculator: Parser<i32> = Parser::new();
+        broken_calculator.add_rule_str(
             "Expr",
             "Sum",
-            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| r.rule_result.unwrap())),
+            Some(Box::new(|r: &ParsingResult<i32>, _t: &CodeTokenizer| r.rule_result.unwrap())),
         );
-        parser.add_rule_str(
+        broken_calculator.add_rule_str(
             "Sum",
             "Value (('+') Value)*",
-            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
+            Some(Box::new(|r: &ParsingResult<i32>, _t: &CodeTokenizer| {
                 let mut sum = r.sub_results.get(0).unwrap().rule_result.unwrap();
                 for v in &r.sub_results.get(1).unwrap().sub_results {
                     sum += v.sub_results.get(1).unwrap().rule_result.unwrap();
@@ -224,7 +223,7 @@ mod parser {
                 return sum;
             })),
         );
-        parser.add_rule_str(
+        broken_calculator.add_rule_str(
             "Value",
             "[\\d]",
             Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
@@ -232,9 +231,10 @@ mod parser {
                 return i;
             })),
         );
-        assert_eq!(parser.parse("Expr", "2 + 0 + 1 + 2323").unwrap(), 2326i32);
+        assert_eq!(broken_calculator.parse("Expr", "2 + 0 + 1 + 2323").unwrap(), 2326i32);
     }
 
+    #[test]
     fn stringify_choice_sequence_terminal_from_str() {
         let mut p: Parser<()> = Parser::new();
         p.add_rule_str("Start", "'A' 'B' 'C' | 'D'", None);

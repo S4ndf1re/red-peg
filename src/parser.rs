@@ -1,5 +1,5 @@
-use crate::tokenizer::{CodeTokenizer, ExpressionToken, ExpressionTokenizer, Token};
-use regex::{Error, Regex};
+use crate::tokenizer::{CodeTokenizer, ExpressionToken, ExpressionTokenizer};
+use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 use std::marker::PhantomData;
