@@ -13,6 +13,28 @@ pub struct ParsingResult<T> {
     pub rule_result: Option<T>,
 }
 
+impl<T> ParsingResult<T> {
+    pub fn flatten(self) -> Vec<ParsingResult<T>> {
+        let mut v = Vec::new();
+        self.flatten_rec(&mut v);
+        return v;
+    }
+
+    fn flatten_rec(mut self, to: &mut Vec<ParsingResult<T>>) {
+        if self.sub_results.len() == 0 {
+            return;
+        }
+        let sub_results_cpy = self.sub_results;
+        self.sub_results = Vec::new();
+        if self.selected_choice.is_some() || self.rule_result.is_some() {
+            to.push(self);
+        }
+        for r in sub_results_cpy {
+            to.push(r);
+        }
+    }
+}
+
 type RuleCallback<T> = Box<dyn Fn(&ParsingResult<T>, &CodeTokenizer) -> T>;
 pub struct Rule<T> {
     expression: Box<dyn ParsingExpression<T>>,
