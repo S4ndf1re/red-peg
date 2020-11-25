@@ -246,9 +246,10 @@ mod parser {
         );
         broken_calculator.add_rule_str(
             "Value",
-            "[\\d]",
+            r"[\d]+",
             Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
-                let i : i32 = t.get_token_sublist(r.parsed_tokens_start, r.parsed_tokens_end).get(0).unwrap().content.parse().unwrap();
+                let digit_str = t.get_substr(r.parsed_string_start, r.parsed_string_end).trim();
+                let i : i32 = digit_str.parse().unwrap();
                 return i;
             })),
         );

@@ -1,76 +1,62 @@
 use std::fmt;
-
-#[derive(Clone, fmt::Debug)]
-pub struct Token {
-    pub line: usize,
-    pub column: usize,
-    pub content: String,
-}
+use regex::Regex;
 
 #[derive(fmt::Debug)]
 pub struct CodeTokenizer {
     code: String,
-    tokens: Vec<Token>,
     states: Vec<usize>,
 }
 
 impl CodeTokenizer {
     pub fn new(code: &str) -> CodeTokenizer {
-        let mut tokenizer = CodeTokenizer {
+        return CodeTokenizer {
             code: String::from(code),
-            tokens: Vec::new(),
-            states: vec![0usize],
-        };
-        let mut line = 1usize;
-        let mut column = 1usize;
-        let mut token_start = 0usize;
-        let mut just_added_token = false;
-        for (i, c) in tokenizer.code.chars().enumerate() {
-            if c.is_whitespace() {
-                if !just_added_token {
-                    tokenizer.tokens.push(Token {
-                        line,
-                        column: column - (i - token_start),
-                        content: String::from(&tokenizer.code[token_start..i]),
-                    });
-                    just_added_token = true;
-                }
-                if c == '\n' {
-                    column = 1;
-                    line += 1;
-                    continue;
-                }
-            } else if just_added_token {
-                token_start = i;
-                just_added_token = false;
-            }
-            column += 1;
-        }
-        if !just_added_token
-            && !tokenizer.code[token_start..tokenizer.code.len()]
-                .trim()
-                .is_empty()
-        {
-            tokenizer.tokens.push(Token {
-                line,
-                column,
-                content: String::from(&tokenizer.code[token_start..tokenizer.code.len()]),
-            });
-        }
-        return tokenizer;
-    }
-    pub fn next_token(&mut self) -> Option<&Token> {
-        let index = self.states.last_mut().expect("No state left!");
-        if self.tokens.len() > *index {
-            *index += 1;
-            Some(self.tokens.get(*index - 1).expect("Unable to fetch token!"))
-        } else {
-            None
+            states: vec![0]
         }
     }
     pub fn is_empty(&self) -> bool {
-        let index = self.states.last().expect("No state left!");
-        self.tokens.len() <= *index
+        let index = *self.states.last().expect("No state left!");
+        self.code.len() <= index
+    }
+
+    pub fn match_string(&mut self, string: &str) -> bool {
+        if self.code.len() < self.get_state() + string.len() {
+            return false;
+        }
+        self.skip_whitespaces();
+        if &self.code[self.get_state()..(self.get_state() + string.len())] == string {
+            *self.states.last_mut().unwrap() += string.len();
+            self.skip_whitespaces();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    fn skip_whitespaces(&mut self) {
+        while let Some(ch) = self.code.chars().nth(self.get_state()) {
+            if ch.is_whitespace() {
+                *self.states.last_mut().unwrap() += 1;
+            } else {
+                break;
+            }
+        }
+    }
+
+    pub fn match_regex(&mut self, regex: &Regex) -> bool {
+        self.skip_whitespaces();
+        match regex.find_at(self.code.as_str(), self.get_state()) {
+            Some(res) => {
+                if self.get_state() != res.start() {
+                    false
+                } else {
+                    *self.states.last_mut().unwrap() += res.range().len();
+                    self.skip_whitespaces();
+                    true
+                }
+            }
+            None => false
+        }
     }
 
     pub fn push_state(&mut self) -> usize {
@@ -91,10 +77,6 @@ impl CodeTokenizer {
         *state_below = current_state;
         current_state
     }
-
-    pub fn get_token_sublist(&self, start: usize, end: usize) -> &[Token] {
-        return &self.tokens[start..end];
-    }
     pub fn get_state(&self) -> usize {
         *self.states.last().expect("No state left!")
     }
@@ -110,8 +92,8 @@ impl CodeTokenizer {
         }
     }
 
-    pub fn tokens_len(&self) -> usize {
-        self.tokens.len()
+    pub fn get_substr(&self, start: usize, end: usize) -> &str {
+        &self.code[start..end]
     }
 }
 

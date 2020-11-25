@@ -6,8 +6,8 @@ use std::marker::PhantomData;
 
 pub struct ASTNode {}
 pub struct ParsingResult<T> {
-    pub parsed_tokens_start: usize,
-    pub parsed_tokens_end: usize,
+    pub parsed_string_start: usize,
+    pub parsed_string_end: usize,
     pub sub_results: Vec<ParsingResult<T>>,
     pub selected_choice: Option<usize>,
     pub rule_result: Option<T>,
@@ -93,27 +93,22 @@ impl<T> ParsingExpression<T> for TerminalParsingExpression<T> {
 
     fn matches(&self, info: &mut ParsingInformation<T>) -> Option<ParsingResult<T>> {
         let start = info.tokenizer.push_state();
-        return if let Some(token) = info.tokenizer.next_token() {
-            let does_match = match &self.content {
-                TerminalType::SIMPLE(str) => {
-                    *str == token.content
-                }
-                TerminalType::REGEX(reg) => {
-                    reg.is_match(token.content.as_str())
-                }
-            };
-            if does_match {
-                Some(ParsingResult {
-                    parsed_tokens_start: start,
-                    parsed_tokens_end: info.tokenizer.update_state(),
-                    sub_results: Vec::new(),
-                    selected_choice: None,
-                    rule_result: None,
-                })
-            } else {
-                info.tokenizer.pop_state();
-                None
+        let does_match = match &self.content {
+            TerminalType::SIMPLE(str) => {
+                info.tokenizer.match_string(str.as_ref())
             }
+            TerminalType::REGEX(reg) => {
+                info.tokenizer.match_regex(reg)
+            }
+        };
+        if does_match {
+            Some(ParsingResult {
+                parsed_string_start: start,
+                parsed_string_end: info.tokenizer.update_state(),
+                sub_results: Vec::new(),
+                selected_choice: None,
+                rule_result: None,
+            })
         } else {
             info.tokenizer.pop_state();
             None
@@ -186,8 +181,8 @@ impl<T> ParsingExpression<T> for SequenceParsingExpression<T> {
     fn matches(&self, info: &mut ParsingInformation<T>) -> Option<ParsingResult<T>> {
         let start = info.tokenizer.push_state();
         let mut result = ParsingResult {
-            parsed_tokens_start: start,
-            parsed_tokens_end: 0,
+            parsed_string_start: start,
+            parsed_string_end: 0,
             sub_results: Vec::new(),
             selected_choice: None,
             rule_result: None,
@@ -200,7 +195,7 @@ impl<T> ParsingExpression<T> for SequenceParsingExpression<T> {
             }
             result.sub_results.push(child_result.unwrap());
         }
-        result.parsed_tokens_end = info.tokenizer.update_state();
+        result.parsed_string_end = info.tokenizer.update_state();
         return Some(result);
     }
 }
@@ -241,8 +236,8 @@ impl<T> ParsingExpression<T> for ChoiceParsingExpression<T> {
             match child.matches(&mut info) {
                 Some(child_res) => {
                     return Some(ParsingResult {
-                        parsed_tokens_start: start,
-                        parsed_tokens_end: info.tokenizer.update_state(),
+                        parsed_string_start: start,
+                        parsed_string_end: info.tokenizer.update_state(),
                         sub_results: vec![child_res],
                         selected_choice: Some(i),
                         rule_result: None,
@@ -273,8 +268,8 @@ impl<T> ParsingExpression<T> for OneOrMoreParsingExpression<T> {
     }
     fn matches(&self, mut info: &mut ParsingInformation<T>) -> Option<ParsingResult<T>> {
         let mut res = ParsingResult {
-            parsed_tokens_start: info.tokenizer.get_state(),
-            parsed_tokens_end: 0,
+            parsed_string_start: info.tokenizer.get_state(),
+            parsed_string_end: 0,
             sub_results: Vec::new(),
             selected_choice: None,
             rule_result: None,
@@ -289,7 +284,7 @@ impl<T> ParsingExpression<T> for OneOrMoreParsingExpression<T> {
                 None => break,
             }
         }
-        res.parsed_tokens_end = info.tokenizer.get_state();
+        res.parsed_string_end = info.tokenizer.get_state();
         Some(res)
     }
 }
@@ -311,8 +306,8 @@ impl<T> ParsingExpression<T> for ZeroOrMoreParsingExpression<T> {
     }
     fn matches(&self, mut info: &mut ParsingInformation<T>) -> Option<ParsingResult<T>> {
         let mut res = ParsingResult {
-            parsed_tokens_start: info.tokenizer.get_state(),
-            parsed_tokens_end: 0,
+            parsed_string_start: info.tokenizer.get_state(),
+            parsed_string_end: 0,
             sub_results: Vec::new(),
             selected_choice: None,
             rule_result: None,
@@ -323,7 +318,7 @@ impl<T> ParsingExpression<T> for ZeroOrMoreParsingExpression<T> {
                 None => break,
             }
         }
-        res.parsed_tokens_end = info.tokenizer.get_state();
+        res.parsed_string_end = info.tokenizer.get_state();
         Some(res)
     }
 }
@@ -347,8 +342,8 @@ impl<T> ParsingExpression<T> for OptionalParsingExpression<T> {
         match self.child.matches(&mut info) {
             Some(res) => Some(res),
             None => Some(ParsingResult {
-                parsed_tokens_start: info.tokenizer.get_state(),
-                parsed_tokens_end: info.tokenizer.get_state(),
+                parsed_string_start: info.tokenizer.get_state(),
+                parsed_string_end: info.tokenizer.get_state(),
                 sub_results: Vec::new(),
                 selected_choice: None,
                 rule_result: None,
