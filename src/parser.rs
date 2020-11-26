@@ -369,6 +369,72 @@ impl<T> ParsingExpression<T> for OptionalParsingExpression<T> {
     }
 }
 
+pub struct AndPredicateParsingExpression<T> {
+    child: Box<dyn ParsingExpression<T>>,
+}
+
+impl<T: 'static> AndPredicateParsingExpression<T> {
+    pub fn new(child: Box<dyn ParsingExpression<T>>) -> Box<dyn ParsingExpression<T>> {
+        Box::new(AndPredicateParsingExpression { child })
+    }
+}
+impl<T> ParsingExpression<T> for AndPredicateParsingExpression<T> {
+    fn dump(&self) -> String {
+        let mut ret = String::from('?');
+        ret.push_str(self.child.dump().as_str());
+        return ret;
+    }
+    fn matches(&self, mut info: &mut ParsingInformation<T>) -> Option<ParsingResult<T>> {
+        info.tokenizer.push_state();
+        match self.child.matches(&mut info) {
+            Some(res) => {
+                info.tokenizer.pop_state();
+                Some(res)
+            },
+            None => {
+                info.tokenizer.pop_state();
+                None
+            }
+        }
+    }
+}
+
+pub struct NotPredicateParsingExpression<T> {
+    child: Box<dyn ParsingExpression<T>>,
+}
+
+impl<T: 'static> NotPredicateParsingExpression<T> {
+    pub fn new(child: Box<dyn ParsingExpression<T>>) -> Box<dyn ParsingExpression<T>> {
+        Box::new(NotPredicateParsingExpression { child })
+    }
+}
+impl<T> ParsingExpression<T> for NotPredicateParsingExpression<T> {
+    fn dump(&self) -> String {
+        let mut ret = String::from('!');
+        ret.push_str(self.child.dump().as_str());
+        return ret;
+    }
+    fn matches(&self, mut info: &mut ParsingInformation<T>) -> Option<ParsingResult<T>> {
+        info.tokenizer.push_state();
+        match self.child.matches(&mut info) {
+            Some(_res) => {
+                info.tokenizer.pop_state();
+                None
+            },
+            None => {
+                info.tokenizer.pop_state();
+                Some(ParsingResult{
+                    parsed_string_start: 0,
+                    parsed_string_end: 0,
+                    sub_results: vec![],
+                    selected_choice: None,
+                    rule_result: None
+                })
+            }
+        }
+    }
+}
+
 pub struct Parser<T> {
     rules: HashMap<String, Rule<T>>,
 }

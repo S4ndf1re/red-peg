@@ -2,6 +2,7 @@
 mod parser {
     use red_peg::parser::*;
     use red_peg::code_tokenizer::CodeTokenizer;
+    use red_peg::expression_tokenizer::ExpressionToken::TerminalRegexExpression;
 
     #[test]
     fn stringify_choice_sequence_terminal() {
@@ -275,6 +276,39 @@ mod parser {
         assert_eq!(broken_calculator.parse("Expr", "3*(4-4)").unwrap(), 0i32);
         assert_eq!(broken_calculator.parse("Expr", "2*4-3").unwrap(), 5i32);
         assert!(broken_calculator.parse("Expr", "2*4-").is_err());
+    }
+
+    #[test]
+    fn predicates() {
+        let mut parser: Parser<i32> = Parser::new();
+        parser.add_rule(
+            "Start",
+            SequenceParsingExpression::new(vec![
+                AndPredicateParsingExpression::new(TerminalParsingExpression::new("a")),
+                ChoiceParsingExpression::new(vec![
+                    TerminalParsingExpression::new("a"),
+                    TerminalParsingExpression::new("b")
+                ])
+            ]),
+            None,
+        );
+        assert!(parser.validate("Start", "a"));
+        assert!(!parser.validate("Start", "b"));
+
+        let mut parser: Parser<i32> = Parser::new();
+        parser.add_rule(
+            "Start",
+            SequenceParsingExpression::new(vec![
+                NotPredicateParsingExpression::new(TerminalParsingExpression::new("a")),
+                ChoiceParsingExpression::new(vec![
+                    TerminalParsingExpression::new("a"),
+                    TerminalParsingExpression::new("b")
+                ])
+            ]),
+            None,
+        );
+        assert!(!parser.validate("Start", "a"));
+        assert!(parser.validate("Start", "b"));
     }
 
     #[test]
