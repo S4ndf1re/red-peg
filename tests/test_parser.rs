@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod parser {
     use red_peg::parser::*;
-    use red_peg::tokenizer::ExpressionToken::ZeroOrMore;
-    use red_peg::tokenizer::CodeTokenizer;
+    use red_peg::code_tokenizer::CodeTokenizer;
+    use red_peg::expression_tokenizer::ExpressionToken::TerminalRegexExpression;
 
     #[test]
     fn stringify_choice_sequence_terminal() {
@@ -200,47 +200,118 @@ mod parser {
         parser.add_rule(
             "Start",
             OptionalParsingExpression::new(TerminalParsingExpression::new("a")),
-            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| 5i32)),
+            Some(Box::new(|_r, _t| {5})),
         );
         assert!(parser.validate("Start", ""));
         assert!(parser.validate("Start", "a"));
         assert!(!parser.validate("Start", "b"));
         assert_eq!(parser.parse("Start", "a").unwrap(), 5i32);
 
-        let broken_calculator: Parser<i32> = Parser::new();
-        parser.add_rule_str(
+        let mut broken_calculator: Parser<i32> = Parser::new();
+        broken_calculator.add_rule_str(
             "Expr",
             "Sum",
-            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| r.rule_result.unwrap())),
+            Some(Box::new(|r: ParsingResult<i32>, _t: &CodeTokenizer| r.rule_result.unwrap())),
         );
-        parser.add_rule(
+        broken_calculator.add_rule_str(
             "Sum",
-            SequenceParsingExpression::new(vec![
-                NonTerminalParsingExpression::new("Value"),
-                ZeroOrMoreParsingExpression::new(SequenceParsingExpression::new(vec![
-                    TerminalParsingExpression::new(("+")),
-                    NonTerminalParsingExpression::new("Value")
-                ])),
-            ]),
-            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
-                let mut sum = r.sub_results.get(0).unwrap().rule_result.unwrap();
-                for v in &r.sub_results.get(1).unwrap().sub_results {
-                    sum += v.sub_results.get(1).unwrap().rule_result.unwrap();
+            "Product (('+' | '-') Product)*",
+            Some(Box::new(|r: ParsingResult<i32>, _t: &CodeTokenizer| {
+                let mut sum = r[0].rule_result.unwrap();
+                for v in &r[1].sub_results {
+                    let second_value = v[1].rule_result.unwrap();
+                    if v[0].selected_choice.unwrap() == 0 {
+                        sum += second_value;
+                    } else {
+                        sum -= second_value;
+                    }
                 }
                 return sum;
             })),
         );
-        parser.add_rule_str(
-            "Value",
-            "'0' | '1' | '2'",
-            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
-                let i : i32 = t.get_token_sublist(r.parsed_tokens_start, r.parsed_tokens_end).get(0).unwrap().content.parse().unwrap();
-                return i;
+        broken_calculator.add_rule_str(
+            "Product",
+            "Value (('*' | '/') Value)*",
+            Some(Box::new(|r: ParsingResult<i32>, _t: &CodeTokenizer| {
+                let mut sum = r[0].rule_result.unwrap();
+                for v in &r[1].sub_results {
+                    let second_value = v[1].rule_result.unwrap();
+                    if v[0].selected_choice.unwrap() == 0 {
+                        sum *= second_value;
+                    } else {
+                        sum /= second_value;
+                    }
+                }
+                return sum;
             })),
         );
-        assert_eq!(parser.parse("Expr", "2 + 0 + 1").unwrap(), 3i32);
+        broken_calculator.add_rule_str(
+            "Value",
+            r"[\d]+ | ('(' Expr ')')",
+            Some(Box::new(|r: ParsingResult<i32>, t: &CodeTokenizer| {
+                let choice = r.selected_choice.unwrap();
+                match choice {
+                    0 => {
+                        let digit_str = t.get_substr(r.parsed_string_start, r.parsed_string_end).trim();
+                        let i : i32 = digit_str.parse().unwrap();
+                        return i;
+                    }
+                    1 => {
+                        return r[0][1].rule_result.unwrap();
+                    }
+                    _ => {
+                        unreachable!();
+                    }
+                }
+
+            })),
+        );
+        assert_eq!(broken_calculator.parse("Expr", "2 + 0 + 1 + 2323").unwrap(), 2326i32);
+        assert_eq!(broken_calculator.parse("Expr", "2 - 5").unwrap(), -3i32);
+        assert_eq!(broken_calculator.parse("Expr", "2 - 3 + 1").unwrap(), 0i32);
+        assert_eq!(broken_calculator.parse("Expr", "2 * 4 - 3").unwrap(), 5i32);
+        assert_eq!(broken_calculator.parse("Expr", "2 - 4 / 2").unwrap(), 0i32);
+        assert_eq!(broken_calculator.parse("Expr", "(2 - 4) / 2").unwrap(), -1i32);
+        assert_eq!(broken_calculator.parse("Expr", "3 * (4 - 4)").unwrap(), 0i32);
+        assert_eq!(broken_calculator.parse("Expr", "3*(4-4)").unwrap(), 0i32);
+        assert_eq!(broken_calculator.parse("Expr", "2*4-3").unwrap(), 5i32);
+        assert!(broken_calculator.parse("Expr", "2*4-").is_err());
     }
 
+    #[test]
+    fn predicates() {
+        let mut parser: Parser<i32> = Parser::new();
+        parser.add_rule(
+            "Start",
+            SequenceParsingExpression::new(vec![
+                AndPredicateParsingExpression::new(TerminalParsingExpression::new("a")),
+                ChoiceParsingExpression::new(vec![
+                    TerminalParsingExpression::new("a"),
+                    TerminalParsingExpression::new("b")
+                ])
+            ]),
+            None,
+        );
+        assert!(parser.validate("Start", "a"));
+        assert!(!parser.validate("Start", "b"));
+
+        let mut parser: Parser<i32> = Parser::new();
+        parser.add_rule(
+            "Start",
+            SequenceParsingExpression::new(vec![
+                NotPredicateParsingExpression::new(TerminalParsingExpression::new("a")),
+                ChoiceParsingExpression::new(vec![
+                    TerminalParsingExpression::new("a"),
+                    TerminalParsingExpression::new("b")
+                ])
+            ]),
+            None,
+        );
+        assert!(!parser.validate("Start", "a"));
+        assert!(parser.validate("Start", "b"));
+    }
+
+    #[test]
     fn stringify_choice_sequence_terminal_from_str() {
         let mut p: Parser<()> = Parser::new();
         p.add_rule_str("Start", "'A' 'B' 'C' | 'D'", None);

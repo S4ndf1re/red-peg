@@ -1,124 +1,8 @@
-use std::fmt;
-
-#[derive(Clone, fmt::Debug)]
-pub struct Token {
-    pub line: usize,
-    pub column: usize,
-    pub content: String,
-}
-
-#[derive(fmt::Debug)]
-pub struct CodeTokenizer {
-    code: String,
-    tokens: Vec<Token>,
-    states: Vec<usize>,
-}
-
-impl CodeTokenizer {
-    pub fn new(code: &str) -> CodeTokenizer {
-        let mut tokenizer = CodeTokenizer {
-            code: String::from(code),
-            tokens: Vec::new(),
-            states: vec![0usize],
-        };
-        let mut line = 1usize;
-        let mut column = 1usize;
-        let mut token_start = 0usize;
-        let mut just_added_token = false;
-        for (i, c) in tokenizer.code.chars().enumerate() {
-            if c.is_whitespace() {
-                if !just_added_token {
-                    tokenizer.tokens.push(Token {
-                        line,
-                        column: column - (i - token_start),
-                        content: String::from(&tokenizer.code[token_start..i]),
-                    });
-                    just_added_token = true;
-                }
-                if c == '\n' {
-                    column = 1;
-                    line += 1;
-                    continue;
-                }
-            } else if just_added_token {
-                token_start = i;
-                just_added_token = false;
-            }
-            column += 1;
-        }
-        if !just_added_token
-            && !tokenizer.code[token_start..tokenizer.code.len()]
-                .trim()
-                .is_empty()
-        {
-            tokenizer.tokens.push(Token {
-                line,
-                column,
-                content: String::from(&tokenizer.code[token_start..tokenizer.code.len()]),
-            });
-        }
-        return tokenizer;
-    }
-    pub fn next_token(&mut self) -> Option<&Token> {
-        let index = self.states.last_mut().expect("No state left!");
-        if self.tokens.len() > *index {
-            *index += 1;
-            Some(self.tokens.get(*index - 1).expect("Unable to fetch token!"))
-        } else {
-            None
-        }
-    }
-    pub fn is_empty(&self) -> bool {
-        let index = self.states.last().expect("No state left!");
-        self.tokens.len() <= *index
-    }
-
-    pub fn push_state(&mut self) -> usize {
-        self.states
-            .push(self.states.last().expect("No current state!").clone());
-        *self.states.last().unwrap()
-    }
-    /* Takes the topmost value in the stack, saves it, pops it off the stack
-     * and writes it to the new top-entry.
-     */
-    pub fn update_state(&mut self) -> usize {
-        let current_state = *self.states.last().expect("Nu current state!");
-        self.states.pop();
-        let state_below = self
-            .states
-            .last_mut()
-            .expect("No state below the current one!");
-        *state_below = current_state;
-        current_state
-    }
-
-    pub fn get_token_sublist(&self, start: usize, end: usize) -> &[Token] {
-        return &self.tokens[start..end];
-    }
-    pub fn get_state(&self) -> usize {
-        *self.states.last().expect("No state left!")
-    }
-
-    pub fn only_one_state_left(&self) -> bool {
-        self.states.len() == 1
-    }
-
-    pub fn pop_state(&mut self) {
-        self.states.pop().expect("No state left to pop!");
-        if self.states.is_empty() {
-            panic!("You can't pop the last state!");
-        }
-    }
-
-    pub fn tokens_len(&self) -> usize {
-        self.tokens.len()
-    }
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExpressionToken {
     Expression(String),
     TerminalExpression(String),
+    TerminalRegexExpression(String),
     GroupBegin,
     GroupEnd,
     ZeroOrMore,
@@ -195,13 +79,13 @@ impl ExpressionTokenizer {
     fn append_last(&mut self, last_string: String) {
         if last_string.len() > 0 {
             if Self::is_terminal(last_string.as_str()) {
-                if !Self::is_regex(last_string.as_str()) {
-                    self.tokens.push(ExpressionToken::TerminalExpression(
-                        last_string[1..last_string.len() - 1].to_string(),
+                if Self::is_regex(last_string.as_str()) {
+                    self.tokens.push(ExpressionToken::TerminalRegexExpression(
+                        last_string.trim().to_string()
                     ));
                 } else {
                     self.tokens.push(ExpressionToken::TerminalExpression(
-                        last_string.trim().to_string(),
+                        last_string[1..last_string.len() - 1].to_string()
                     ));
                 }
             } else {
