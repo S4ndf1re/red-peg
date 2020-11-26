@@ -1,19 +1,7 @@
 #[cfg(test)]
-mod stringify {
-    use red_peg::tokenizer::*;
-    #[test]
-    #[should_panic]
-    fn state_system_panic() {
-        let mut t = CodeTokenizer::new("Hallo Welt!");
-        t.push_state();
-        t.pop_state();
-        t.pop_state();
-    }
-}
+mod expression_tokenizer {
+    use red_peg::expression_tokenizer::*;
 
-#[cfg(test)]
-mod expr_tokenizing {
-    use red_peg::tokenizer::*;
     #[test]
     fn tokenize() {
         let mut tok = ExpressionTokenizer::new("Test ABC [a-zA-Z]+ ((A/B) C)");

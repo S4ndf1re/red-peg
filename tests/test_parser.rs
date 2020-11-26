@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod parser {
     use red_peg::parser::*;
-    use red_peg::tokenizer::CodeTokenizer;
+    use red_peg::code_tokenizer::CodeTokenizer;
 
     #[test]
     fn stringify_choice_sequence_terminal() {
