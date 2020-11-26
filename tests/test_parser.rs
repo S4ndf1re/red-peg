@@ -216,10 +216,10 @@ mod parser {
             "Sum",
             "Product (('+' | '-') Product)*",
             Some(Box::new(|r: &ParsingResult<i32>, _t: &CodeTokenizer| {
-                let mut sum = r.sub_results[0].rule_result.unwrap();
-                for v in &r.sub_results[1].sub_results {
-                    let second_value = v.sub_results[1].rule_result.unwrap();
-                    if v.sub_results.get(0).unwrap().selected_choice.unwrap() == 0 {
+                let mut sum = r[0].rule_result.unwrap();
+                for v in &r[1].sub_results {
+                    let second_value = v[1].rule_result.unwrap();
+                    if v[0].selected_choice.unwrap() == 0 {
                         sum += second_value;
                     } else {
                         sum -= second_value;
@@ -232,10 +232,10 @@ mod parser {
             "Product",
             "Value (('*' | '/') Value)*",
             Some(Box::new(|r: &ParsingResult<i32>, _t: &CodeTokenizer| {
-                let mut sum = r.sub_results[0].rule_result.unwrap();
-                for v in &r.sub_results[1].sub_results {
-                    let second_value = v.sub_results[1].rule_result.unwrap();
-                    if v.sub_results[0].selected_choice.unwrap() == 0 {
+                let mut sum = r[0].rule_result.unwrap();
+                for v in &r[1].sub_results {
+                    let second_value = v[1].rule_result.unwrap();
+                    if v[0].selected_choice.unwrap() == 0 {
                         sum *= second_value;
                     } else {
                         sum /= second_value;
@@ -256,7 +256,7 @@ mod parser {
                         return i;
                     }
                     1 => {
-                        return r.sub_results[0][1].rule_result.unwrap();
+                        return r[0][1].rule_result.unwrap();
                     }
                     _ => {
                         unreachable!();
