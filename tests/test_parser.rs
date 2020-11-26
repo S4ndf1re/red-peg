@@ -246,11 +246,23 @@ mod parser {
         );
         broken_calculator.add_rule_str(
             "Value",
-            r"[\d]+",
+            r"[\d]+ | ('(' Expr ')')",
             Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
-                let digit_str = t.get_substr(r.parsed_string_start, r.parsed_string_end).trim();
-                let i : i32 = digit_str.parse().unwrap();
-                return i;
+                let choice = r.selected_choice.unwrap();
+                match choice {
+                    0 => {
+                        let digit_str = t.get_substr(r.parsed_string_start, r.parsed_string_end).trim();
+                        let i : i32 = digit_str.parse().unwrap();
+                        return i;
+                    }
+                    1 => {
+                        return r.sub_results[0][1].rule_result.unwrap();
+                    }
+                    _ => {
+                        unreachable!();
+                    }
+                }
+
             })),
         );
         assert_eq!(broken_calculator.parse("Expr", "2 + 0 + 1 + 2323").unwrap(), 2326i32);
@@ -258,6 +270,10 @@ mod parser {
         assert_eq!(broken_calculator.parse("Expr", "2 - 3 + 1").unwrap(), 0i32);
         assert_eq!(broken_calculator.parse("Expr", "2 * 4 - 3").unwrap(), 5i32);
         assert_eq!(broken_calculator.parse("Expr", "2 - 4 / 2").unwrap(), 0i32);
+        assert_eq!(broken_calculator.parse("Expr", "(2 - 4) / 2").unwrap(), -1i32);
+        assert_eq!(broken_calculator.parse("Expr", "3 * (4 - 4)").unwrap(), 0i32);
+        assert_eq!(broken_calculator.parse("Expr", "3*(4-4)").unwrap(), 0i32);
+        assert_eq!(broken_calculator.parse("Expr", "2*4-3").unwrap(), 5i32);
     }
 
     #[test]
