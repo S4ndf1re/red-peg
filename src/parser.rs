@@ -397,13 +397,16 @@ impl<T: 'static> Parser<T> {
             },
         );
         assert!(tokenizer.only_one_state_left());
-        if !tokenizer.is_empty() {
-            return Err("There are tokens that haven't been parsed!");
-        }
+
         match rule_result {
             None => Err("There is no result!"),
             Some(parsing_result) => match parsing_result.rule_result {
-                Some(rule_result) => Ok(rule_result),
+                Some(rule_result) =>
+                    if !tokenizer.is_empty() {
+                        Err("There are tokens that haven't been parsed!")
+                    } else {
+                        Ok(rule_result)
+                    },
                 None => Err("There is no callback registered for the rule!"),
             },
         }
