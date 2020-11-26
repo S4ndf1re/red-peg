@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops;
-use std::ops::Index;
 
 pub struct ASTNode {}
 pub struct ParsingResult<T> {
@@ -45,7 +44,7 @@ impl<T> ops::Index<usize> for ParsingResult<T> {
     }
 }
 
-type RuleCallback<T> = Box<dyn Fn(&ParsingResult<T>, &CodeTokenizer) -> T>;
+type RuleCallback<T> = Box<dyn Fn(ParsingResult<T>, &CodeTokenizer) -> T>;
 pub struct Rule<T> {
     expression: Box<dyn ParsingExpression<T>>,
     callback: Option<RuleCallback<T>>,
@@ -150,11 +149,18 @@ impl<T> ParsingExpression<T> for NonTerminalParsingExpression<T> {
             .get(&self.name)
             .expect("No rule for this non-terminal!");
         match rule.expression.matches(&mut info) {
-            Some(mut res) => {
+            Some(res) => {
+                let mut res_cpy = ParsingResult{
+                    parsed_string_start: res.parsed_string_start,
+                    parsed_string_end: res.parsed_string_end,
+                    sub_results: vec![],
+                    selected_choice: res.selected_choice,
+                    rule_result: None
+                };
                 if let Some(ref callback) = rule.callback {
-                    res.rule_result = Some(callback(&res, &info.tokenizer));
+                    res_cpy.rule_result = Some(callback(res, &info.tokenizer));
                 }
-                Some(res)
+                Some(res_cpy)
             }
             None => None,
         }
@@ -378,6 +384,7 @@ impl<T: 'static> Parser<T> {
         right_side: Box<dyn ParsingExpression<T>>,
         callback: Option<RuleCallback<T>>,
     ) {
+        assert!(!self.rules.contains_key(left_side));
         self.rules.insert(
             String::from(left_side),
             Rule {

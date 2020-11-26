@@ -199,7 +199,7 @@ mod parser {
         parser.add_rule(
             "Start",
             OptionalParsingExpression::new(TerminalParsingExpression::new("a")),
-            Some(Box::new(|_r: &ParsingResult<i32>, _t: &CodeTokenizer| 5i32)),
+            Some(Box::new(|_r, _t| {5})),
         );
         assert!(parser.validate("Start", ""));
         assert!(parser.validate("Start", "a"));
@@ -210,12 +210,12 @@ mod parser {
         broken_calculator.add_rule_str(
             "Expr",
             "Sum",
-            Some(Box::new(|r: &ParsingResult<i32>, _t: &CodeTokenizer| r.rule_result.unwrap())),
+            Some(Box::new(|r: ParsingResult<i32>, _t: &CodeTokenizer| r.rule_result.unwrap())),
         );
         broken_calculator.add_rule_str(
             "Sum",
             "Product (('+' | '-') Product)*",
-            Some(Box::new(|r: &ParsingResult<i32>, _t: &CodeTokenizer| {
+            Some(Box::new(|r: ParsingResult<i32>, _t: &CodeTokenizer| {
                 let mut sum = r[0].rule_result.unwrap();
                 for v in &r[1].sub_results {
                     let second_value = v[1].rule_result.unwrap();
@@ -231,7 +231,7 @@ mod parser {
         broken_calculator.add_rule_str(
             "Product",
             "Value (('*' | '/') Value)*",
-            Some(Box::new(|r: &ParsingResult<i32>, _t: &CodeTokenizer| {
+            Some(Box::new(|r: ParsingResult<i32>, _t: &CodeTokenizer| {
                 let mut sum = r[0].rule_result.unwrap();
                 for v in &r[1].sub_results {
                     let second_value = v[1].rule_result.unwrap();
@@ -247,7 +247,7 @@ mod parser {
         broken_calculator.add_rule_str(
             "Value",
             r"[\d]+ | ('(' Expr ')')",
-            Some(Box::new(|r: &ParsingResult<i32>, t: &CodeTokenizer| {
+            Some(Box::new(|r: ParsingResult<i32>, t: &CodeTokenizer| {
                 let choice = r.selected_choice.unwrap();
                 match choice {
                     0 => {
