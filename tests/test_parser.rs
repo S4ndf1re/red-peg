@@ -274,6 +274,7 @@ mod parser {
         assert_eq!(broken_calculator.parse("Expr", "3 * (4 - 4)").unwrap(), 0i32);
         assert_eq!(broken_calculator.parse("Expr", "3*(4-4)").unwrap(), 0i32);
         assert_eq!(broken_calculator.parse("Expr", "2*4-3").unwrap(), 5i32);
+        assert!(broken_calculator.parse("Expr", "2*4-").is_err());
     }
 
     #[test]
