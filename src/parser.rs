@@ -3,6 +3,8 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 use std::marker::PhantomData;
+use std::ops;
+use std::ops::Index;
 
 pub struct ASTNode {}
 pub struct ParsingResult<T> {
@@ -32,6 +34,14 @@ impl<T> ParsingResult<T> {
         for r in sub_results_cpy {
             to.push(r);
         }
+    }
+}
+
+impl<T> ops::Index<usize> for ParsingResult<T> {
+    type Output = ParsingResult<T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.sub_results.get(index).unwrap()
     }
 }
 
