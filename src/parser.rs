@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops;
+use crate::expression_tokenizer::ExpressionToken::NotPredicate;
 
 pub struct ASTNode {}
 pub struct ParsingResult<T> {
@@ -512,6 +513,9 @@ impl<T: 'static> Parser<T> {
     fn parse_rule(tokenizer: &mut ExpressionTokenizer) -> Box<dyn ParsingExpression<T>> {
         let mut sequence = Vec::new();
         let mut choices = Vec::new();
+        let mut and_predicate = false;
+        let mut not_predicate = false;
+
         loop {
             if let Some(token) = tokenizer.next_token() {
                 let expr = match token {
@@ -556,11 +560,27 @@ impl<T: 'static> Parser<T> {
                         sequence.push(OptionalParsingExpression::new(child));
                         None
                     }
+                    ExpressionToken::NotPredicate => {
+                        not_predicate = true;
+                        None
+                    }
+                    ExpressionToken::AndPredicate => {
+                        and_predicate = true;
+                        None
+                    }
                     ExpressionToken::None => None
                 };
 
                 if let Some(val) = expr {
-                    sequence.push(val);
+                    if and_predicate {
+                        sequence.push(AndPredicateParsingExpression::new(val));
+                    } else if not_predicate {
+                        sequence.push(NotPredicateParsingExpression::new(val));
+                    } else {
+                        sequence.push(val);
+                    }
+                    not_predicate = false;
+                    and_predicate = false;
                 }
             } else {
                 break;
