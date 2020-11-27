@@ -291,9 +291,15 @@ impl<T> ParsingExpression<T> for OneOrMoreParsingExpression<T> {
             Some(child_res) => res.sub_results.push(child_res),
             None => return None,
         }
+        let start_state = info.tokenizer.get_state();
         loop {
             match self.child.matches(&mut info) {
-                Some(child_res) => res.sub_results.push(child_res),
+                Some(child_res) => {
+                    if info.tokenizer.get_state() == start_state {
+                        panic!("No characters are being consumed in a OneOrMoreParsingExpression, this is an endless loop!");
+                    }
+                    res.sub_results.push(child_res)
+                },
                 None => break,
             }
         }
@@ -326,8 +332,14 @@ impl<T> ParsingExpression<T> for ZeroOrMoreParsingExpression<T> {
             rule_result: None,
         };
         loop {
+            let start_state = info.tokenizer.get_state();
             match self.child.matches(&mut info) {
-                Some(child_res) => res.sub_results.push(child_res),
+                Some(child_res) => {
+                    if info.tokenizer.get_state() == start_state {
+                        panic!("No characters are being consumed in a ZeroOrMoreParsingExpression, this is an endless loop!");
+                    }
+                    res.sub_results.push(child_res)
+                },
                 None => break,
             }
         }

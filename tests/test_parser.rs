@@ -314,6 +314,21 @@ mod parser {
     }
 
     #[test]
+    #[should_panic]
+    fn endless_loop() {
+        let mut parser: Parser<()> = Parser::new();
+        parser.add_rule_str("Start", "''*", None);
+        assert!(parser.parse("Start", "a b c def").is_err());
+    }
+    #[test]
+    #[should_panic]
+    fn endless_loop2() {
+        let mut parser: Parser<()> = Parser::new();
+        parser.add_rule_str("Start", "''+", None);
+        assert!(parser.parse("Start", "a b c def").is_err());
+    }
+
+    #[test]
     fn stringify_choice_sequence_terminal_from_str() {
         let mut p: Parser<()> = Parser::new();
         p.add_rule_str("Start", "'A' 'B' 'C' | 'D'", None);
