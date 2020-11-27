@@ -304,6 +304,16 @@ mod parser {
     }
 
     #[test]
+    fn empty_terminal() {
+        let mut parser: Parser<()> = Parser::new();
+        parser.add_rule_str("Start", "('' [a-z\\d])*", None);
+        assert!(parser.validate("Start", "a fsfsjk"));
+        assert!(parser.validate("Start", "awdb  daw ger3"));
+        assert!(parser.validate("Start", "gsdg c dawd"));
+        assert!(parser.validate("Start", "a"));
+    }
+
+    #[test]
     fn stringify_choice_sequence_terminal_from_str() {
         let mut p: Parser<()> = Parser::new();
         p.add_rule_str("Start", "'A' 'B' 'C' | 'D'", None);

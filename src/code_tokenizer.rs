@@ -20,6 +20,9 @@ impl CodeTokenizer {
     }
 
     pub fn match_string(&mut self, string: &str) -> bool {
+        if string.is_empty() {
+            return true;
+        }
         if self.code.len() < self.get_state() + string.len() {
             return false;
         }
