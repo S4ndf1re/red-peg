@@ -281,30 +281,18 @@ mod parser {
     #[test]
     fn predicates() {
         let mut parser: Parser<i32> = Parser::new();
-        parser.add_rule(
+        parser.add_rule_str(
             "Start",
-            SequenceParsingExpression::new(vec![
-                AndPredicateParsingExpression::new(TerminalParsingExpression::new("a")),
-                ChoiceParsingExpression::new(vec![
-                    TerminalParsingExpression::new("a"),
-                    TerminalParsingExpression::new("b")
-                ])
-            ]),
+            "&'a' ('a' | 'b')",
             None,
         );
         assert!(parser.validate("Start", "a"));
         assert!(!parser.validate("Start", "b"));
 
         let mut parser: Parser<i32> = Parser::new();
-        parser.add_rule(
+        parser.add_rule_str(
             "Start",
-            SequenceParsingExpression::new(vec![
-                NotPredicateParsingExpression::new(TerminalParsingExpression::new("a")),
-                ChoiceParsingExpression::new(vec![
-                    TerminalParsingExpression::new("a"),
-                    TerminalParsingExpression::new("b")
-                ])
-            ]),
+            "!'a' ('a' | 'b')",
             None,
         );
         assert!(!parser.validate("Start", "a"));
