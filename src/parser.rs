@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops;
-use crate::expression_tokenizer::ExpressionToken::NotPredicate;
 
 pub struct ASTNode {}
 pub struct ParsingResult<T> {
