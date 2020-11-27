@@ -1,5 +1,5 @@
-use std::fmt;
 use regex::Regex;
+use std::fmt;
 
 #[derive(fmt::Debug)]
 pub struct CodeTokenizer {
@@ -11,8 +11,8 @@ impl CodeTokenizer {
     pub fn new(code: &str) -> CodeTokenizer {
         return CodeTokenizer {
             code: String::from(code),
-            states: vec![0]
-        }
+            states: vec![0],
+        };
     }
     pub fn is_empty(&self) -> bool {
         let index = *self.states.last().expect("No state left!");
@@ -55,7 +55,7 @@ impl CodeTokenizer {
                     true
                 }
             }
-            None => false
+            None => false,
         }
     }
 

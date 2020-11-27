@@ -104,12 +104,8 @@ impl<T> ParsingExpression<T> for TerminalParsingExpression<T> {
     fn matches(&self, info: &mut ParsingInformation<T>) -> Option<ParsingResult<T>> {
         let start = info.tokenizer.push_state();
         let does_match = match &self.content {
-            TerminalType::SIMPLE(str) => {
-                info.tokenizer.match_string(str.as_ref())
-            }
-            TerminalType::REGEX(reg) => {
-                info.tokenizer.match_regex(reg)
-            }
+            TerminalType::SIMPLE(str) => info.tokenizer.match_string(str.as_ref()),
+            TerminalType::REGEX(reg) => info.tokenizer.match_regex(reg),
         };
         if does_match {
             Some(ParsingResult {
@@ -151,12 +147,12 @@ impl<T> ParsingExpression<T> for NonTerminalParsingExpression<T> {
             .expect("No rule for this non-terminal!");
         match rule.expression.matches(&mut info) {
             Some(res) => {
-                let mut res_cpy = ParsingResult{
+                let mut res_cpy = ParsingResult {
                     parsed_string_start: res.parsed_string_start,
                     parsed_string_end: res.parsed_string_end,
                     sub_results: vec![],
                     selected_choice: res.selected_choice,
-                    rule_result: None
+                    rule_result: None,
                 };
                 if let Some(ref callback) = rule.callback {
                     res_cpy.rule_result = Some(callback(res, &info.tokenizer));
@@ -390,7 +386,7 @@ impl<T> ParsingExpression<T> for AndPredicateParsingExpression<T> {
             Some(res) => {
                 info.tokenizer.pop_state();
                 Some(res)
-            },
+            }
             None => {
                 info.tokenizer.pop_state();
                 None
@@ -420,15 +416,15 @@ impl<T> ParsingExpression<T> for NotPredicateParsingExpression<T> {
             Some(_res) => {
                 info.tokenizer.pop_state();
                 None
-            },
+            }
             None => {
                 info.tokenizer.pop_state();
-                Some(ParsingResult{
+                Some(ParsingResult {
                     parsed_string_start: 0,
                     parsed_string_end: 0,
                     sub_results: vec![],
                     selected_choice: None,
-                    rule_result: None
+                    rule_result: None,
                 })
             }
         }
@@ -485,12 +481,13 @@ impl<T: 'static> Parser<T> {
         match rule_result {
             None => Err("There is no result!"),
             Some(parsing_result) => match parsing_result.rule_result {
-                Some(rule_result) =>
+                Some(rule_result) => {
                     if !tokenizer.is_empty() {
                         Err("There are tokens that haven't been parsed!")
                     } else {
                         Ok(rule_result)
-                    },
+                    }
+                }
                 None => Err("There is no callback registered for the rule!"),
             },
         }
@@ -534,7 +531,7 @@ impl<T: 'static> Parser<T> {
                     }
                     ExpressionToken::TerminalExpression(val) => {
                         Some(TerminalParsingExpression::new(val.as_str()))
-                    },
+                    }
                     ExpressionToken::TerminalRegexExpression(val) => {
                         Some(TerminalParsingExpression::new_from_regex(val.as_str()))
                     }
@@ -567,7 +564,7 @@ impl<T: 'static> Parser<T> {
                         and_predicate = true;
                         None
                     }
-                    ExpressionToken::None => None
+                    ExpressionToken::None => None,
                 };
 
                 if let Some(val) = expr {

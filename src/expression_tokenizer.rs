@@ -85,11 +85,11 @@ impl ExpressionTokenizer {
             if Self::is_terminal(last_string.as_str()) {
                 if Self::is_regex(last_string.as_str()) {
                     self.tokens.push(ExpressionToken::TerminalRegexExpression(
-                        last_string.trim().to_string()
+                        last_string.trim().to_string(),
                     ));
                 } else {
                     self.tokens.push(ExpressionToken::TerminalExpression(
-                        last_string[1..last_string.len() - 1].to_string()
+                        last_string[1..last_string.len() - 1].to_string(),
                     ));
                 }
             } else {

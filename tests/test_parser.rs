@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod parser {
-    use red_peg::parser::*;
     use red_peg::code_tokenizer::CodeTokenizer;
     use red_peg::expression_tokenizer::ExpressionToken::TerminalRegexExpression;
+    use red_peg::parser::*;
 
     #[test]
     fn stringify_choice_sequence_terminal() {
@@ -200,7 +200,7 @@ mod parser {
         parser.add_rule(
             "Start",
             OptionalParsingExpression::new(TerminalParsingExpression::new("a")),
-            Some(Box::new(|_r, _t| {5})),
+            Some(Box::new(|_r, _t| 5)),
         );
         assert!(parser.validate("Start", ""));
         assert!(parser.validate("Start", "a"));
@@ -211,7 +211,9 @@ mod parser {
         broken_calculator.add_rule_str(
             "Expr",
             "Sum",
-            Some(Box::new(|r: ParsingResult<i32>, _t: &CodeTokenizer| r.rule_result.unwrap())),
+            Some(Box::new(|r: ParsingResult<i32>, _t: &CodeTokenizer| {
+                r.rule_result.unwrap()
+            })),
         );
         broken_calculator.add_rule_str(
             "Sum",
@@ -252,8 +254,10 @@ mod parser {
                 let choice = r.selected_choice.unwrap();
                 match choice {
                     0 => {
-                        let digit_str = t.get_substr(r.parsed_string_start, r.parsed_string_end).trim();
-                        let i : i32 = digit_str.parse().unwrap();
+                        let digit_str = t
+                            .get_substr(r.parsed_string_start, r.parsed_string_end)
+                            .trim();
+                        let i: i32 = digit_str.parse().unwrap();
                         return i;
                     }
                     1 => {
@@ -263,16 +267,24 @@ mod parser {
                         unreachable!();
                     }
                 }
-
             })),
         );
-        assert_eq!(broken_calculator.parse("Expr", "2 + 0 + 1 + 2323").unwrap(), 2326i32);
+        assert_eq!(
+            broken_calculator.parse("Expr", "2 + 0 + 1 + 2323").unwrap(),
+            2326i32
+        );
         assert_eq!(broken_calculator.parse("Expr", "2 - 5").unwrap(), -3i32);
         assert_eq!(broken_calculator.parse("Expr", "2 - 3 + 1").unwrap(), 0i32);
         assert_eq!(broken_calculator.parse("Expr", "2 * 4 - 3").unwrap(), 5i32);
         assert_eq!(broken_calculator.parse("Expr", "2 - 4 / 2").unwrap(), 0i32);
-        assert_eq!(broken_calculator.parse("Expr", "(2 - 4) / 2").unwrap(), -1i32);
-        assert_eq!(broken_calculator.parse("Expr", "3 * (4 - 4)").unwrap(), 0i32);
+        assert_eq!(
+            broken_calculator.parse("Expr", "(2 - 4) / 2").unwrap(),
+            -1i32
+        );
+        assert_eq!(
+            broken_calculator.parse("Expr", "3 * (4 - 4)").unwrap(),
+            0i32
+        );
         assert_eq!(broken_calculator.parse("Expr", "3*(4-4)").unwrap(), 0i32);
         assert_eq!(broken_calculator.parse("Expr", "2*4-3").unwrap(), 5i32);
         assert!(broken_calculator.parse("Expr", "2*4-").is_err());
@@ -281,20 +293,12 @@ mod parser {
     #[test]
     fn predicates() {
         let mut parser: Parser<i32> = Parser::new();
-        parser.add_rule_str(
-            "Start",
-            "&'a' ('a' | 'b')",
-            None,
-        );
+        parser.add_rule_str("Start", "&'a' ('a' | 'b')", None);
         assert!(parser.validate("Start", "a"));
         assert!(!parser.validate("Start", "b"));
 
         let mut parser: Parser<i32> = Parser::new();
-        parser.add_rule_str(
-            "Start",
-            "!'a' ('a' | 'b')",
-            None,
-        );
+        parser.add_rule_str("Start", "!'a' ('a' | 'b')", None);
         assert!(!parser.validate("Start", "a"));
         assert!(parser.validate("Start", "b"));
     }
