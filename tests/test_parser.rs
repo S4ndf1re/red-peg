@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod parser {
     use red_peg::code_tokenizer::CodeTokenizer;
-    use red_peg::expression_tokenizer::ExpressionToken::TerminalRegexExpression;
     use red_peg::parser::*;
 
     #[test]
