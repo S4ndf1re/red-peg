@@ -9,6 +9,8 @@ pub enum ExpressionToken {
     OneOrMore,
     Optional,
     Choice,
+    AndPredicate,
+    NotPredicate,
     None, // For ignoring the token
 }
 
@@ -55,6 +57,8 @@ impl ExpressionTokenizer {
                     '+' => Some(ExpressionToken::OneOrMore),
                     '*' => Some(ExpressionToken::ZeroOrMore),
                     '/' | '|' => Some(ExpressionToken::Choice),
+                    '!' => Some(ExpressionToken::NotPredicate),
+                    '&' => Some(ExpressionToken::AndPredicate),
                     _ if c.is_whitespace() => Some(ExpressionToken::None),
                     _ => None,
                 };
@@ -81,11 +85,11 @@ impl ExpressionTokenizer {
             if Self::is_terminal(last_string.as_str()) {
                 if Self::is_regex(last_string.as_str()) {
                     self.tokens.push(ExpressionToken::TerminalRegexExpression(
-                        last_string.trim().to_string()
+                        last_string.trim().to_string(),
                     ));
                 } else {
                     self.tokens.push(ExpressionToken::TerminalExpression(
-                        last_string[1..last_string.len() - 1].to_string()
+                        last_string[1..last_string.len() - 1].to_string(),
                     ));
                 }
             } else {

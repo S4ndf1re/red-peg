@@ -104,12 +104,8 @@ impl<T> ParsingExpression<T> for TerminalParsingExpression<T> {
     fn matches(&self, info: &mut ParsingInformation<T>) -> Option<ParsingResult<T>> {
         let start = info.tokenizer.push_state();
         let does_match = match &self.content {
-            TerminalType::SIMPLE(str) => {
-                info.tokenizer.match_string(str.as_ref())
-            }
-            TerminalType::REGEX(reg) => {
-                info.tokenizer.match_regex(reg)
-            }
+            TerminalType::SIMPLE(str) => info.tokenizer.match_string(str.as_ref()),
+            TerminalType::REGEX(reg) => info.tokenizer.match_regex(reg),
         };
         if does_match {
             Some(ParsingResult {
@@ -151,12 +147,12 @@ impl<T> ParsingExpression<T> for NonTerminalParsingExpression<T> {
             .expect("No rule for this non-terminal!");
         match rule.expression.matches(&mut info) {
             Some(res) => {
-                let mut res_cpy = ParsingResult{
+                let mut res_cpy = ParsingResult {
                     parsed_string_start: res.parsed_string_start,
                     parsed_string_end: res.parsed_string_end,
                     sub_results: vec![],
                     selected_choice: res.selected_choice,
-                    rule_result: None
+                    rule_result: None,
                 };
                 if let Some(ref callback) = rule.callback {
                     res_cpy.rule_result = Some(callback(res, &info.tokenizer));
@@ -295,9 +291,18 @@ impl<T> ParsingExpression<T> for OneOrMoreParsingExpression<T> {
             Some(child_res) => res.sub_results.push(child_res),
             None => return None,
         }
+        let start_state = info.tokenizer.get_state();
         loop {
+            if info.tokenizer.is_empty() {
+                return Some(res);
+            }
             match self.child.matches(&mut info) {
-                Some(child_res) => res.sub_results.push(child_res),
+                Some(child_res) => {
+                    if info.tokenizer.get_state() == start_state {
+                        panic!("No characters are being consumed in a OneOrMoreParsingExpression, this is an endless loop!");
+                    }
+                    res.sub_results.push(child_res)
+                },
                 None => break,
             }
         }
@@ -330,8 +335,17 @@ impl<T> ParsingExpression<T> for ZeroOrMoreParsingExpression<T> {
             rule_result: None,
         };
         loop {
+            if info.tokenizer.is_empty() {
+                return Some(res);
+            }
+            let start_state = info.tokenizer.get_state();
             match self.child.matches(&mut info) {
-                Some(child_res) => res.sub_results.push(child_res),
+                Some(child_res) => {
+                    if info.tokenizer.get_state() == start_state {
+                        panic!("No characters are being consumed in a ZeroOrMoreParsingExpression, this is an endless loop!");
+                    }
+                    res.sub_results.push(child_res)
+                },
                 None => break,
             }
         }
@@ -390,7 +404,7 @@ impl<T> ParsingExpression<T> for AndPredicateParsingExpression<T> {
             Some(res) => {
                 info.tokenizer.pop_state();
                 Some(res)
-            },
+            }
             None => {
                 info.tokenizer.pop_state();
                 None
@@ -420,15 +434,15 @@ impl<T> ParsingExpression<T> for NotPredicateParsingExpression<T> {
             Some(_res) => {
                 info.tokenizer.pop_state();
                 None
-            },
+            }
             None => {
                 info.tokenizer.pop_state();
-                Some(ParsingResult{
+                Some(ParsingResult {
                     parsed_string_start: 0,
                     parsed_string_end: 0,
                     sub_results: vec![],
                     selected_choice: None,
-                    rule_result: None
+                    rule_result: None,
                 })
             }
         }
@@ -485,12 +499,13 @@ impl<T: 'static> Parser<T> {
         match rule_result {
             None => Err("There is no result!"),
             Some(parsing_result) => match parsing_result.rule_result {
-                Some(rule_result) =>
+                Some(rule_result) => {
                     if !tokenizer.is_empty() {
                         Err("There are tokens that haven't been parsed!")
                     } else {
                         Ok(rule_result)
-                    },
+                    }
+                }
                 None => Err("There is no callback registered for the rule!"),
             },
         }
@@ -512,6 +527,9 @@ impl<T: 'static> Parser<T> {
     fn parse_rule(tokenizer: &mut ExpressionTokenizer) -> Box<dyn ParsingExpression<T>> {
         let mut sequence = Vec::new();
         let mut choices = Vec::new();
+        let mut and_predicate = false;
+        let mut not_predicate = false;
+
         loop {
             if let Some(token) = tokenizer.next_token() {
                 let expr = match token {
@@ -531,7 +549,7 @@ impl<T: 'static> Parser<T> {
                     }
                     ExpressionToken::TerminalExpression(val) => {
                         Some(TerminalParsingExpression::new(val.as_str()))
-                    },
+                    }
                     ExpressionToken::TerminalRegexExpression(val) => {
                         Some(TerminalParsingExpression::new_from_regex(val.as_str()))
                     }
@@ -556,11 +574,27 @@ impl<T: 'static> Parser<T> {
                         sequence.push(OptionalParsingExpression::new(child));
                         None
                     }
-                    ExpressionToken::None => None
+                    ExpressionToken::NotPredicate => {
+                        not_predicate = true;
+                        None
+                    }
+                    ExpressionToken::AndPredicate => {
+                        and_predicate = true;
+                        None
+                    }
+                    ExpressionToken::None => None,
                 };
 
                 if let Some(val) = expr {
-                    sequence.push(val);
+                    if and_predicate {
+                        sequence.push(AndPredicateParsingExpression::new(val));
+                    } else if not_predicate {
+                        sequence.push(NotPredicateParsingExpression::new(val));
+                    } else {
+                        sequence.push(val);
+                    }
+                    not_predicate = false;
+                    and_predicate = false;
                 }
             } else {
                 break;
