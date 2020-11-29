@@ -293,6 +293,9 @@ impl<T> ParsingExpression<T> for OneOrMoreParsingExpression<T> {
         }
         let start_state = info.tokenizer.get_state();
         loop {
+            if info.tokenizer.is_empty() {
+                return Some(res);
+            }
             match self.child.matches(&mut info) {
                 Some(child_res) => {
                     if info.tokenizer.get_state() == start_state {
@@ -332,6 +335,9 @@ impl<T> ParsingExpression<T> for ZeroOrMoreParsingExpression<T> {
             rule_result: None,
         };
         loop {
+            if info.tokenizer.is_empty() {
+                return Some(res);
+            }
             let start_state = info.tokenizer.get_state();
             match self.child.matches(&mut info) {
                 Some(child_res) => {
